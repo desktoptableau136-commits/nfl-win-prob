@@ -116,6 +116,9 @@
   .plays li.tap:active { background: color-mix(in srgb, var(--ink) 6%, transparent); }
   .plays li.key { background: color-mix(in srgb, var(--ink) 4%, transparent); margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
   .plays li.picked { box-shadow: inset 3px 0 0 var(--ink); }
+  /* the newest play in a live game */
+  .plays li.latest { background: color-mix(in srgb, var(--accent) 9%, transparent); margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
+  .plays li.latest .meta::before { content: "Latest · "; color: var(--accent); font-weight: 650; }
   .tag { display: inline-block; font-size: 10.5px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase;
     border-radius: 4px; padding: 1px 5px; margin: 0 5px 2px 0; color: #fff; background: var(--muted); vertical-align: 1px; }
   .tag.good { background: var(--good); }
@@ -473,7 +476,7 @@ function renderGame(g) {
       [["All", false], ["Key plays", true]].map(([label, v]) => el("button", { class: keyOnly === v ? "on" : "",
         onclick: () => { keyOnly = v; try { localStorage.setItem("keyOnly", v ? "1" : "0"); } catch (err) {} renderGame(g); } }, label)));
     colB.append(el("section", { class: "panel" }, el("div", { class: "panelhead" }, el("h2", {}, "Play by play"), seg),
-      shown.length ? playList(shown, g, col, tags) : el("p", { class: "muted small" }, "No key plays yet."),
+      shown.length ? playList(shown, g, col, tags, g.state === "in" ? all[0]?.play_id : null) : el("p", { class: "muted small" }, "No key plays yet."),
       plays.length > 8 ? el("button", { class: "btn more", onclick: () => { showAll = !showAll; renderGame(g); } },
         showAll ? "Show fewer" : `Show all ${plays.length} plays`) : null));
     nodes.push(el("div", { class: "cols" }, colA, colB));
@@ -513,14 +516,14 @@ function playTags(p, next) {
   return tags;
 }
 
-function playList(points, g, col, tags) {
+function playList(points, g, col, tags, latestId = null) {
   return el("ul", { class: "plays" }, points.map(p => {
     const s = p.swing ?? 0;
     const gainer = s >= 0 ? g.home : g.away;
     const chip = Math.abs(s) < 0.005 ? el("span", { class: "chip flat" }, "±0")
       : el("span", { class: "chip", style: `background:${s >= 0 ? col.home : col.away};color:${onColor(s >= 0 ? col.home : col.away)}` }, `${gainer.abbr} +${Math.round(Math.abs(s) * 100)}`);
     const t = tags.get(p) || [];
-    const cls = ["tap", t.length ? "key" : "", p.play_id === pickedId ? "picked" : ""].filter(Boolean).join(" ");
+    const cls = ["tap", p.play_id === latestId ? "latest" : t.length ? "key" : "", p.play_id === pickedId ? "picked" : ""].filter(Boolean).join(" ");
     return el("li", { class: cls, "data-play": p.play_id, role: "button", tabindex: "0", onclick: () => pick(p) }, chip, el("div", {},
       el("div", { class: "meta" }, [when(p), p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
       el("div", { class: "txt" }, t.map(([label, c]) => el("span", { class: "tag " + c }, label)), p.text || ""), callLine(p)));
