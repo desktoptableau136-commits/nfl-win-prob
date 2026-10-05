@@ -72,6 +72,15 @@
 
   .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-top: 12px; }
   .panel h2 { font-size: 14px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  details.panel > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 32px; margin: -6px 0; }
+  details.panel > summary::-webkit-details-marker { display: none; }
+  details.panel > summary h2 { margin: 0; flex: 1; }
+  details.panel > summary .peek { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  details.panel > summary .peek .chip { padding: 3px 7px; }
+  details.panel > summary .caret { color: var(--muted); transition: transform .15s; }
+  details.panel[open] > summary { margin-bottom: 8px; }
+  details.panel[open] > summary .caret { transform: rotate(90deg); }
+  details.panel[open] > summary .peek { display: none; }
   .charthead { display: flex; justify-content: space-between; align-items: center; }
   .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; min-height: 32px; }
   svg.chart { width: 100%; display: block; touch-action: pan-y; user-select: none; }
@@ -220,8 +229,9 @@ function gameCard(g) {
 }
 
 // ---------- single game ----------
-let showEspn = true, showAll = false, lastGame = null, cursor = null;
+let showEspn = true, showAll = false, swingsOpen = false, lastGame = null, cursor = null;
 try { showEspn = localStorage.getItem("showEspn") !== "0"; } catch (e) {}
+try { swingsOpen = localStorage.getItem("swingsOpen") === "1"; } catch (e) {}
 
 async function showGame(id) {
   view = "game:" + id;
@@ -289,7 +299,19 @@ function renderGame(g) {
 
     const swings = g.points.filter(p => p.swing !== undefined && p.kind !== "now")
       .sort((a, b) => Math.abs(b.swing) - Math.abs(a.swing)).slice(0, 5);
-    if (swings.length) nodes.push(el("section", { class: "panel" }, el("h2", {}, "Biggest swings"), playList(swings, g, col)));
+    if (swings.length) {
+      // Collapsed by default so the chart and play by play sit together; the top swing peeks out
+      const top = swings[0], topCol = top.swing >= 0 ? col.home : col.away;
+      nodes.push(el("details", { class: "panel", ...(swingsOpen ? { open: "" } : {}), ontoggle: e => {
+        swingsOpen = e.target.open; try { localStorage.setItem("swingsOpen", swingsOpen ? "1" : "0"); } catch (err) {}
+      } },
+        el("summary", {}, el("h2", {}, "Biggest swings"),
+          el("span", { class: "peek" }, top.period ? `Q${top.period > 4 ? "OT" : top.period} ${top.clock}` : "",
+            el("span", { class: "chip", style: `background:${topCol};color:${onColor(topCol)}` },
+              `${(top.swing >= 0 ? g.home : g.away).abbr} +${Math.round(Math.abs(top.swing) * 100)}`)),
+          el("span", { class: "caret" }, "›")),
+        playList(swings, g, col)));
+    }
 
     const plays = g.points.filter(p => p.kind !== "now" && p.kind !== "final").reverse();
     const shown = showAll ? plays : plays.slice(0, 8);
