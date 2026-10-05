@@ -1,6 +1,6 @@
 // 4th-down helper: compares going for it, kicking a field goal, and punting by the
 // win probability each choice leads to. The odds come from docs/fourth.json (see live/fourth.py).
-import { predict } from "./model.js?v=211db9a4";
+import { predict } from "./model.js?v=734f5105";
 
 const KICKOFF_YARDLINE = 70;  // same assumption as espn.js: the receiving team starts at its own 30
 const EXPECTED_PAT = 0.95;

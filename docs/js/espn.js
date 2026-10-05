@@ -7,7 +7,7 @@
 // - a play's start/end hold down, distance, yardsToEndzone and the team with the ball
 // - odds `spread` is the HOME team's line: -3.5 means home favored by 3.5
 
-import { predict } from "./model.js?v=211db9a4";
+import { predict } from "./model.js?v=734f5105";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 const SUMMARY_URL = id => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`;
@@ -201,7 +201,8 @@ function parseGame(summary, liveSituation = null) {
       const other = scorer === homeId ? awayId : homeId;
       const receiver = safety ? scorer : other;  // after a safety the scoring team receives
       const pendingPat = points === 6 ? { [scorer]: EXPECTED_PAT } : {};
-      now = situation(receiver, 1, 10, KICKOFF_YARDLINE, period, clockNow, pendingPat, { down_text: "Kickoff" });
+      now = situation(receiver, 1, 10, KICKOFF_YARDLINE, period, clockNow, pendingPat, { down_text: "Kickoff",
+        pat_pending: points === 6 ? scorer : null });  // the try after the touchdown hasn't been posted
     } else if (valid(end) || lastEnd) {
       const e = valid(end) ? end : lastEnd;
       now = situation(e.team.id, e.down, e.distance, toEndzone(e, abbrOf), period, clockNow, {},

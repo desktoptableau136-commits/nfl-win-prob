@@ -47,6 +47,7 @@ if it goes for it, kicks a field goal, or punts. Past 4th downs show the model's
 On other live downs, a **Next snap** panel shows the stakes (how far win probability is expected to move,
 where 1× is a typical 1st–3rd down) and the win chance after a touchdown, a first down, no gain, or a turnover.
 With two or more games on, the games list points you to the one whose next snap matters most (**Watch now**).
+Right after a touchdown, a **kick or go for 2?** panel compares the two tries; past touchdowns show the pick next to what the team did.
 Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to open it full screen like an app.
 
 ### How it compares with ESPN
@@ -91,6 +92,7 @@ Then refresh the two lookup files the page uses:
 .venv\Scripts\python -m live.excitement   # docs/excitement.json: "Excitement" comparison
 .venv\Scripts\python -m live.fourth       # docs/fourth.json: 4th-down conversion / field goal / punt odds
 .venv\Scripts\python -m live.leverage     # docs/leverage.json: gain/turnover odds and a typical snap's swing, for "stakes"
+.venv\Scripts\python -m live.two_point    # docs/twopoint.json: drive and conversion odds for kick-or-go-for-2 (prints its chart)
 ```
 
 ## Files
@@ -104,6 +106,7 @@ Then refresh the two lookup files the page uses:
 | `live/excitement.py` | Builds `docs/excitement.json`: how much WP moved in 2021–25 games, for the game summary |
 | `live/fourth.py` | Builds `docs/fourth.json`: conversion, field goal and punt odds for the 4th-down helper |
 | `live/leverage.py` | Builds `docs/leverage.json`: gain and turnover odds by down and distance, and a typical snap's expected swing |
+| `live/two_point.py` | Builds `docs/twopoint.json` and prints the kick-or-go-for-2 chart (drive-by-drive calculation) |
 | `live/compare_espn.py` | Replays a whole season through the page with a model that never saw it, and scores it against ESPN |
 | `live/stamp.py` | Stamps script imports with a version (`?v=…`); run before pushing changes to `docs/js` |
 | `live/server.py` | Tiny local web server for `docs/` (home Wi-Fi use) |
@@ -111,6 +114,7 @@ Then refresh the two lookup files the page uses:
 | `docs/js/espn.js` | Reads ESPN's feed and rebuilds the situation before every play |
 | `docs/js/fourth.js` | 4th-down helper: WP after going for it, kicking, or punting |
 | `docs/js/leverage.js` | "Stakes": plays the next snap out the usual ways and averages how far WP moves |
+| `docs/js/twopoint.js` | Kick or go for 2: plays out the rest of the game drive by drive (same math as `live/two_point.py`) |
 | `docs/js/model.js` | Runs the model's 1,500 decision trees in the browser |
 | `docs/manifest.webmanifest`, `docs/icons/` | Lets phones install the page as a home-screen app |
 
@@ -127,3 +131,6 @@ Then refresh the two lookup files the page uses:
   Treat differences under about 1–2 points of win probability as toss-ups.
 - "Stakes" uses league-average gains for the down and distance; it doesn't know the play call, the offense, or
   penalties. Checked on 2021–25: snaps it rates 2.5× or more moved WP 8 points on average, under 0.5× about 0.5.
+- Kick or go for 2 uses league-average drives for both teams and doesn't know timeouts or field position;
+  the tree model is too coarse across single points of margin to make this call, so it only sets the overall level.
+  It isn't offered in overtime.

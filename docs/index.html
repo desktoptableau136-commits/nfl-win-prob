@@ -210,9 +210,10 @@
 <main class="wrap" id="app"><p class="empty">Loading…</p></main>
 
 <script type="module">
-import { loadGames, loadGame } from "./js/espn.js?v=211db9a4";
-import { addFourthDowns } from "./js/fourth.js?v=211db9a4";
-import { addLeverage } from "./js/leverage.js?v=211db9a4";
+import { loadGames, loadGame } from "./js/espn.js?v=734f5105";
+import { addFourthDowns } from "./js/fourth.js?v=734f5105";
+import { addLeverage } from "./js/leverage.js?v=734f5105";
+import { addConversions } from "./js/twopoint.js?v=734f5105";
 
 const $app = document.getElementById("app");
 const $status = document.getElementById("status");
@@ -468,7 +469,7 @@ fetch("excitement.json").then(r => r.ok ? r.json() : null).then(x => { excitemen
 
 async function showGame(id) {
   view = "game:" + id;
-  const g = await attempt(() => loadGame(id).then(addFourthDowns).then(addLeverage));
+  const g = await attempt(() => loadGame(id).then(addFourthDowns).then(addLeverage).then(addConversions));
   if (view !== "game:" + id) return;
   if (!g) { if (!lastGame) $app.replaceChildren(el("p", { class: "empty" }, "Couldn't load this game.")); schedule(() => showGame(id), 10000); return; }
   lastGame = g;
@@ -518,7 +519,8 @@ function renderGame(g) {
     el("div", { class: "teams" }, teamBlock(g.away, "away"), mid, teamBlock(g.home, "home")), hero);
 
   const nodes = [el("a", { class: "back", href: "#/" }, "‹ All games"), board];
-  if (g.state === "in" && g.now?.fourth) nodes.push(fourthPanel(g, col, g.now));
+  if (g.state === "in" && g.now?.pat) nodes.push(patPanel(g, g.now));
+  else if (g.state === "in" && g.now?.fourth) nodes.push(fourthPanel(g, col, g.now));
   else if (g.state === "in" && g.now?.stakes && !/kickoff/i.test(g.now.down_text)) nodes.push(stakesPanel(g, col, g.now));
   if (g.points.length) {
     const readout = el("div", { class: "readout" });
@@ -666,8 +668,8 @@ function summaryPanel(g, col) {
 }
 
 // ---------- 4th downs ----------
-const SHORT = { go: "Go for it", fg: "Field goal", punt: "Punt" };
-const DID = { go: "went for it", fg: "kicked the field goal", punt: "punted" };
+const SHORT = { go: "Go for it", fg: "Field goal", punt: "Punt", kick: "Kick the PAT", two: "Go for 2" };
+const DID = { go: "went for it", fg: "kicked the field goal", punt: "punted", kick: "kicked", two: "went for 2" };
 const pts1 = x => `${(x * 100).toFixed(1)} pts`;
 const closeCall = f => f.margin !== null && f.margin < 0.01;
 
@@ -693,15 +695,36 @@ function fourthPanel(g, col, p) {
       `Percentages are ${team.abbr}'s chance to win after each choice. Odds are for an average offense, kicker and punter (2018–25).`));
 }
 
-// one line for a 4th-down play: the model's pick, and whether the team agreed
+// one line per decision on a play (the 4th down, then the try after a touchdown): the model's pick, and whether the team agreed
 function callLine(p) {
-  const f = p.fourth;
-  if (!f) return null;
-  const close = closeCall(f);
-  const mark = !f.did ? "" : f.did === f.best ? " ✓" : close ? " (fine either way)" : " ✗";
-  return el("div", { class: "call" }, "Model's pick: ", el("b", {}, SHORT[f.best]),
-    f.margin === null ? "" : close ? " (close call)" : ` (by ${pts1(f.margin)})`,
-    f.did ? ` · they ${DID[f.did]}${mark}` : "");
+  return [p.fourth && ["Model's pick", p.fourth], p.pat && ["After the TD", p.pat]].filter(Boolean).map(([what, f]) => {
+    const close = closeCall(f);
+    if (close && f === p.pat) return el("div", { class: "call" }, `${what}: `, el("b", {}, "toss-up"), f.did ? ` · they ${DID[f.did]}` : "");
+    const mark = !f.did ? "" : f.did === f.best ? " ✓" : close ? " (fine either way)" : " ✗";
+    return el("div", { class: "call" }, `${what}: `, el("b", {}, SHORT[f.best]),
+      f.margin === null ? "" : close ? " (close call)" : ` (by ${pts1(f.margin)})`,
+      f.did ? ` · they ${DID[f.did]}${mark}` : "");
+  });
+}
+
+// Kick or go for 2, while the try after a touchdown is pending
+function patPanel(g, p) {
+  const f = p.pat, team = f.team === g.home.id ? g.home : g.away;
+  const verdict = closeCall(f) ? "Toss-up: the two are within 1 point of win probability. Early in a game they're worth about the same (95% × 1 point vs 48% × 2)."
+    : `${SHORT[f.best]} is better by ${pts1(f.margin)} of win probability.`;
+  return el("section", { class: "panel fourth" },
+    el("h2", {}, `Touchdown ${team.abbr}: kick or go for 2?`),
+    el("div", { class: "sub" }, `Before the try: ${g.away.abbr} ${g.away.score}–${g.home.score} ${g.home.abbr}`),
+    f.options.map(o => el("div", { class: "opt" + (o.key === f.best && !closeCall(f) ? " best" : "") },
+      el("div", { class: "top" },
+        el("div", {}, el("div", { class: "name" }, o.label, o.key === f.best && !closeCall(f) ? el("span", { class: "tag good", style: "margin-left:6px" }, "Best") : null),
+          el("div", { class: "why" }, `${pct(o.chance)} ${o.chanceText}`)),
+        el("div", { class: "wp" }, pct(o.wp))),
+      el("div", { class: "bar" }, el("div", { style: `width:${o.wp * 100}%` })))),
+    el("div", { class: "verdict" }, verdict),
+    el("p", { class: "muted small", style: "margin:6px 0 0" },
+      `Percentages are ${team.abbr}'s chance to win after each choice. The difference comes from playing out the rest of the game drive by drive `,
+      "(league-average touchdown, field goal and conversion rates, and how many drives are usually left at this point), the way 2-point charts are made."));
 }
 
 // "What's at stake on the next snap" for a live 1st-3rd down
@@ -809,7 +832,7 @@ function drawChart(box, readout, g, col) {
       el("div", { class: "meta" }, [when(p), p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
       el("div", {}, el("strong", { style: `color:${p.wp_home >= 0.5 ? col.home : col.away}` }, `${lead.abbr} ${pct(Math.max(p.wp_home, 1 - p.wp_home))}`), el("span", { class: "muted" }, espn)),
       el("div", {}, p.text === "Now" ? "Current situation" : p.text || ""),
-      callLine(p),
+      ...callLine(p),
       pickedId && p.play_id === pickedId ? el("button", { class: "linkbtn", onclick: () => { unpick(); show(latest, false); } }, "Back to now") : null,
     ].filter(Boolean));
   };
