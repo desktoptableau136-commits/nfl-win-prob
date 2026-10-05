@@ -46,8 +46,12 @@ On a live 4th down, the game page shows a **4th-down helper**: your team's chanc
 if it goes for it, kicks a field goal, or punts. Past 4th downs show the model's pick next to what the team did.
 On other live downs, a **Next snap** panel shows the stakes (how far win probability is expected to move,
 where 1× is a typical 1st–3rd down) and the win chance after a touchdown, a first down, no gain, or a turnover.
-With two or more games on, the games list points you to the one whose next snap matters most (**Watch now**).
+With two or more games on, the games list points you to the one whose win probability is most likely to swing
+in the next 5 minutes of game clock (**Watch now**): mostly how close the game is and how much time is left, plus the next snap's stakes.
 Right after a touchdown, a **kick or go for 2?** panel compares the two tries; past touchdowns show the pick next to what the team did.
+The **Coach report card** (link below the games) grades every 4th down and every try after a touchdown this season
+with the same helpers and adds up, by team, the win probability given up on calls that went against the model.
+The first visit grades every finished game in your browser (about 20 seconds early in the season); after that they're kept on the device.
 Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to open it full screen like an app.
 
 ### How it compares with ESPN
@@ -93,6 +97,7 @@ Then refresh the two lookup files the page uses:
 .venv\Scripts\python -m live.fourth       # docs/fourth.json: 4th-down conversion / field goal / punt odds
 .venv\Scripts\python -m live.leverage     # docs/leverage.json: gain/turnover odds and a typical snap's swing, for "stakes"
 .venv\Scripts\python -m live.two_point    # docs/twopoint.json: drive and conversion odds for kick-or-go-for-2 (prints its chart)
+.venv\Scripts\python -m live.watch        # docs/watch.json: typical 5-minute WP movement by closeness and time left, for "Watch now"
 ```
 
 ## Files
@@ -107,6 +112,7 @@ Then refresh the two lookup files the page uses:
 | `live/fourth.py` | Builds `docs/fourth.json`: conversion, field goal and punt odds for the 4th-down helper |
 | `live/leverage.py` | Builds `docs/leverage.json`: gain and turnover odds by down and distance, and a typical snap's expected swing |
 | `live/two_point.py` | Builds `docs/twopoint.json` and prints the kick-or-go-for-2 chart (drive-by-drive calculation) |
+| `live/watch.py` | Builds `docs/watch.json` for "Watch now" and checks how well it picks the game about to swing |
 | `live/compare_espn.py` | Replays a whole season through the page with a model that never saw it, and scores it against ESPN |
 | `live/stamp.py` | Stamps script imports with a version (`?v=…`); run before pushing changes to `docs/js` |
 | `live/server.py` | Tiny local web server for `docs/` (home Wi-Fi use) |
@@ -115,6 +121,8 @@ Then refresh the two lookup files the page uses:
 | `docs/js/fourth.js` | 4th-down helper: WP after going for it, kicking, or punting |
 | `docs/js/leverage.js` | "Stakes": plays the next snap out the usual ways and averages how far WP moves |
 | `docs/js/twopoint.js` | Kick or go for 2: plays out the rest of the game drive by drive (same math as `live/two_point.py`) |
+| `docs/js/watch.js` | "Watch now": expected WP movement over the next 5 minutes of a live game |
+| `docs/js/coaches.js` | Coach report card: grades a season's 4th downs and tries, kept in the browser's storage |
 | `docs/js/model.js` | Runs the model's 1,500 decision trees in the browser |
 | `docs/manifest.webmanifest`, `docs/icons/` | Lets phones install the page as a home-screen app |
 
@@ -134,3 +142,5 @@ Then refresh the two lookup files the page uses:
 - Kick or go for 2 uses league-average drives for both teams and doesn't know timeouts or field position;
   the tree model is too coarse across single points of margin to make this call, so it only sets the overall level.
   It isn't offered in overtime.
+- The coach report card inherits the helpers' limits: it grades against an average team and doesn't know injuries,
+  weather or the play call. Calls within 1 point either way aren't counted. Kneel-downs and spikes are skipped.

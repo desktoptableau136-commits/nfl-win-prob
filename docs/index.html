@@ -159,10 +159,34 @@
   .scen .d.down { color: var(--accent); font-weight: 650; }
 
   /* "watch now" on the games list */
-  .watch { display: block; background: var(--card); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; }
+  .watch { background: var(--card); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; }
   .watch .wline { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 750; margin: 2px 0; font-variant-numeric: tabular-nums; }
   .watch img { width: 24px; height: 24px; object-fit: contain; }
   .watch .go { margin-left: auto; color: var(--muted); font-weight: 400; }
+  .watch .wmain { display: block; }
+  .watch .wrest { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .watch .wrest a { text-decoration: underline; }
+  .linkcard { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; }
+  .linkcard .go { margin-left: auto; color: var(--muted); }
+
+  /* coach report card */
+  .coach summary, .coach .head { display: grid; grid-template-columns: 22px 22px 40px 1fr auto 12px; align-items: center; gap: 8px; }
+  .coach summary { list-style: none; cursor: pointer; padding: 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .coach summary::-webkit-details-marker { display: none; }
+  .coach details:first-of-type summary { border-top: 0; }
+  .coach summary img { width: 22px; height: 22px; object-fit: contain; }
+  .coach .rank { color: var(--muted); font-size: 12.5px; text-align: right; }
+  .coach .abbr { font-weight: 650; }
+  .coach .mid { font-size: 12.5px; color: var(--muted); max-width: none; }
+  .coach .cost { font-weight: 700; text-align: right; }
+  .coach .caret { color: var(--muted); transition: transform .15s; }
+  .coach details[open] .caret { transform: rotate(90deg); }
+  .coach .lean { display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: var(--line); margin-top: 4px; max-width: 140px; }
+  .coach .misses { list-style: none; margin: 0 0 8px 30px; padding: 0; }
+  .coach .misses li { padding: 6px 0; border-top: 1px dashed var(--line); font-size: 13px; }
+  .coach .misses .meta { font-size: 12px; color: var(--muted); }
+  .coach .misses a { text-decoration: underline; }
+  .coach .head { font-size: 11.5px; color: var(--muted); padding-bottom: 4px; }
 
   /* mini charts on the games list */
   .spark { height: 52px; margin-top: 8px; }
@@ -210,10 +234,12 @@
 <main class="wrap" id="app"><p class="empty">Loading…</p></main>
 
 <script type="module">
-import { loadGames, loadGame } from "./js/espn.js?v=734f5105";
-import { addFourthDowns } from "./js/fourth.js?v=734f5105";
-import { addLeverage } from "./js/leverage.js?v=734f5105";
-import { addConversions } from "./js/twopoint.js?v=734f5105";
+import { loadGames, loadGame } from "./js/espn.js?v=c92a5518";
+import { addFourthDowns } from "./js/fourth.js?v=c92a5518";
+import { addLeverage } from "./js/leverage.js?v=c92a5518";
+import { addConversions } from "./js/twopoint.js?v=c92a5518";
+import { addWatch } from "./js/watch.js?v=c92a5518";
+import { seasonReport } from "./js/coaches.js?v=c92a5518";
 
 const $app = document.getElementById("app");
 const $status = document.getElementById("status");
@@ -292,7 +318,7 @@ async function showList() {
   view = "list";
   const q = parseQuery();
   const data = await attempt(() => loadGames(q).then(async d => {
-    await Promise.all(d.games.map(g => addLeverage(g).catch(e => console.error(e))));
+    await Promise.all(d.games.map(g => addLeverage(g).then(addWatch).catch(e => console.error(e))));
     return d;
   }));
   if (view !== "list") return;
@@ -307,25 +333,32 @@ async function showList() {
 
   const grid = el("div", { class: "grid" }, data.games.map(gameCard));
   $app.replaceChildren(nav, ...[watchNow(data.games)].filter(Boolean), data.games.length ? grid : el("p", { class: "empty" }, "No games this week."),
+    el("a", { class: "card linkcard", href: "#/coaches" }, el("b", {}, "Coach report card"),
+      el("span", { class: "small muted" }, "Every 4th down and 2-point call this season, graded"), el("span", { class: "go" }, "›")),
     el("p", { class: "note" }, "Pregame percentages come from the betting line alone. Tap a game for the full chart."),
     aboutPanel());
   schedule(showList, data.games.some(g => g.state === "in") ? 20000 : 120000);
   fillSparks(data.games.filter(g => g.state === "post" && !sparkCache.has(g.id)));
 }
 
-// With two or more games on, point to the one whose next snap matters most.
+// With two or more games on, point to the one whose win probability is likely to move most in the next 5 minutes
+// (how close it is and how much time is left, nudged by the next snap's stakes; see live/watch.py).
 function watchNow(games) {
-  const live = games.filter(g => g.state === "in" && g.now?.stakes);
+  const live = games.filter(g => g.state === "in" && g.watch).sort((a, b) => b.watch.move - a.watch.move);
   if (live.length < 2) return null;
-  const g = live.reduce((a, b) => b.now.stakes.index > a.now.stakes.index ? b : a);
-  const st = g.now.stakes;
+  const [g, ...rest] = live;
+  const st = g.now.stakes, lead = g.wp_home >= 0.5 ? g.home : g.away;
   const ball = g.now.posteam === g.home.id ? g.home : g.away;
-  return el("a", { class: "watch", href: `#/game/${g.id}` },
-    el("div", { class: "small muted" }, `Watch now · the biggest next snap of the ${live.length} live games`),
-    el("div", { class: "wline" }, el("img", { src: g.away.logo, alt: "" }), `${g.away.abbr} ${g.away.score}–${g.home.score} ${g.home.abbr}`,
-      el("img", { src: g.home.logo, alt: "" }), el("span", { class: "go" }, "›")),
-    el("div", { class: "small" }, [g.detail, `${ball.abbr} ball`, g.now.down_text].filter(Boolean).join(" · "), " · ",
-      el("b", { style: `color:${stakesColor(st)}` }, `${st.label} stakes (${st.index.toFixed(1)}×)`)));
+  return el("div", { class: "watch" },
+    el("a", { class: "wmain", href: `#/game/${g.id}` },
+      el("div", { class: "small muted" }, `Watch now · of the ${live.length} live games, the most likely to swing in the next 5 minutes`),
+      el("div", { class: "wline" }, el("img", { src: g.away.logo, alt: "" }), `${g.away.abbr} ${g.away.score}–${g.home.score} ${g.home.abbr}`,
+        el("img", { src: g.home.logo, alt: "" }), el("span", { class: "go" }, "›")),
+      el("div", { class: "small" }, [g.detail, `${lead.abbr} ${pct(Math.max(g.wp_home, 1 - g.wp_home))}`, `${ball.abbr} ball`, g.now.down_text].filter(Boolean).join(" · ")),
+      el("div", { class: "small" }, el("b", {}, `${g.watch.index.toFixed(1)}× the usual action`), " expected",
+        st ? [" · next snap: ", el("b", { style: `color:${stakesColor(st)}` }, `${st.label.toLowerCase()} stakes`)] : null)),
+    rest.length ? el("div", { class: "small muted wrest" }, "Then: ", rest.slice(0, 3).flatMap((x, i) => [i ? " · " : "",
+      el("a", { href: `#/game/${x.id}` }, `${x.away.abbr}–${x.home.abbr} ${x.watch.index.toFixed(1)}×`)])) : null);
 }
 const stakesColor = st => st.index >= 2.5 ? "var(--accent)" : st.index >= 1.5 ? "var(--warn)" : "var(--muted)";
 
@@ -850,12 +883,80 @@ function drawChart(box, readout, g, col) {
   box.replaceChildren(svg);
 }
 
+// ---------- coach report card ----------
+const WAY = { timid: ["Cautious", "var(--warn)"], bold: ["Bold", "var(--accent)"] };
+const coachOpen = new Set();  // teams whose list is open, kept while the page fills in
+let coachRun = null;          // the season being graded, so coming back to the page doesn't start over
+
+function showCoaches() {
+  view = "coaches";
+  const { year } = parseQuery(), key = year || "now";
+  $app.replaceChildren(el("a", { class: "back", href: "#/" }, "‹ All games"), el("p", { class: "empty" }, "Loading the season…"));
+  if (!coachRun || coachRun.key !== key) {
+    const run = coachRun = { key, last: null };
+    run.promise = seasonReport(year, (r, done, total) => { run.last = [r, done, total]; if (view === "coaches" && coachRun === run) renderCoaches(r, done, total); })
+      .then(r => { run.last = [r, r.games, r.games, r.failed]; lastOk = Date.now(); failing = false; setStatus(); return r; })
+      .finally(() => { if (coachRun === run) coachRun = null; });  // the next visit picks up newly finished games
+  }
+  const run = coachRun;
+  if (run.last) renderCoaches(...run.last);
+  run.promise.then(() => { if (view === "coaches" && parseQuery().year === year) renderCoaches(...run.last); },
+    e => { console.error(e); if (view === "coaches") $app.replaceChildren(el("a", { class: "back", href: "#/" }, "‹ All games"), el("p", { class: "empty" }, "Couldn't load the season.")); });
+}
+
+function renderCoaches(r, done, total, failed = 0) {
+  const L = r.league, ptsSum = x => `${(x * 100).toFixed(1)} pts`;
+  const go = y => `#/coaches?year=${y}`;
+  const nav = el("div", { class: "weeknav" },
+    el("a", { class: "btn", href: go(r.year - 1), "aria-label": "Previous season" }, "‹"),
+    el("h1", {}, `${r.year} coach report card`),
+    r.current ? el("span", { class: "btn", style: "visibility:hidden" }, "›") : el("a", { class: "btn", href: go(r.year + 1), "aria-label": "Next season" }, "›"));
+  const progress = done < total ? el("p", { class: "small muted" }, `Grading finished games: ${done} of ${total}… The first visit takes a minute; graded games are kept on this device.`)
+    : failed ? el("p", { class: "small muted" }, `${failed} game${failed > 1 ? "s" : ""} couldn't be loaded and ${failed > 1 ? "are" : "is"} left out.`) : null;
+  const off = L.timid + L.bold;
+  const league = el("section", { class: "panel" }, el("h2", {}, "The league"),
+    L.calls ? el("div", { class: "stats" },
+      [["Matched the model", pct(L.agreed / L.calls), `${L.agreed} of ${L.calls} clear calls`],
+       ["Too cautious", L.timid, `cost ${ptsSum(L.timidLost)} of win probability`],
+       ["Too bold", L.bold, `cost ${ptsSum(L.boldLost)}`]].map(([k, v, d]) => el("div", { class: "stat" },
+        el("div", { class: "k" }, k), el("div", { class: "v" }, v), el("div", { class: "d" }, d)))) : el("p", { class: "muted small" }, "No finished games yet."),
+    off ? el("p", { class: "small", style: "margin:10px 0 0" }, `When a coach went against a clear call, ${pct(L.timid / off)} of the time it was the cautious choice: `,
+      "punting or kicking when going for it was better, or kicking the extra point when 2 was better.") : null);
+  const rows = r.rows.map((t, i) => {
+    const lean = t.timid.lost + t.bold.lost;
+    return el("details", { ...(coachOpen.has(t.team.id) ? { open: "" } : {}), ontoggle: e => { e.target.open ? coachOpen.add(t.team.id) : coachOpen.delete(t.team.id); } },
+      el("summary", {},
+        el("span", { class: "rank" }, i + 1), el("img", { src: t.team.logo, alt: "" }), el("span", { class: "abbr" }, t.team.abbr),
+        el("span", { class: "mid" }, `${t.agreed}/${t.calls} · ${t.timid.n} cautious · ${t.bold.n} bold`,
+          lean ? el("div", { class: "lean" }, el("div", { style: `width:${t.timid.lost / lean * 100}%;background:var(--warn)` }),
+            el("div", { style: `width:${t.bold.lost / lean * 100}%;background:var(--accent)` })) : null),
+        el("span", { class: "cost" }, t.perGame < 0.0005 ? "0" : `−${(t.perGame * 100).toFixed(1)}`), el("span", { class: "caret" }, "›")),
+      t.misses.length ? el("ul", { class: "misses" }, t.misses.slice(0, 8).map(d => el("li", {},
+        el("div", { class: "meta" }, `Wk ${d.week} vs ${d.opp?.abbr ?? "?"} · ${when(d)} · ${d.down_text} · `,
+          d.kind === "try" ? "after the TD: " : "", d.lead > 0 ? `up ${d.lead}` : d.lead < 0 ? `down ${-d.lead}` : "tied"),
+        el("div", {}, el("span", { class: "tag", style: `background:${WAY[d.way][1]}` }, WAY[d.way][0]),
+          `${SHORT[d.did]}; model: ${SHORT[d.best]} `, el("b", {}, `−${pts1(d.lost)}`), " ",
+          el("a", { class: "small muted", href: `#/game/${d.game}` }, "game ›")))),
+        t.misses.length > 8 ? el("li", { class: "meta" }, `and ${t.misses.length - 8} smaller ones`) : null)
+        : el("p", { class: "small muted", style: "margin:0 0 8px 30px" }, "No clear calls against the model."));
+  });
+  $app.replaceChildren(el("a", { class: "back", href: "#/" }, "‹ All games"), nav, ...[progress].filter(Boolean), league,
+    el("section", { class: "panel coach" }, el("h2", {}, "By team"),
+      el("div", { class: "head" }, el("span", {}), el("span", {}), el("span", {}, "Team"), el("span", {}, "Matched model"), el("span", { style: "text-align:right" }, "Pts/game"), el("span", {})),
+      rows.length ? rows : el("p", { class: "muted small" }, "No graded games yet.")),
+    el("p", { class: "note" },
+      "Every 4th down and every try after a touchdown, run through the same helpers as the game page. Pts/game = win probability given up per game ",
+      "on calls that went against the model's pick. Calls within 1 point either way don't count. ",
+      "The helpers assume an average offense and kicker and don't know injuries, weather or the play call, so read single calls loosely and season totals more seriously. Tap a team for its costliest calls."));
+}
+
 // ---------- routing ----------
 function route() {
   clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = folds.about = false; pickedId = null; chartShow = null; window.scrollTo(0, 0);
   hideMini(); $app.className = "wrap"; document.body.classList.remove("gameview");
   const m = location.hash.match(/^#\/game\/(\d+)/);
   if (m) { $app.replaceChildren(el("p", { class: "empty" }, "Loading game…")); showGame(m[1]); }
+  else if (/^#\/coaches/.test(location.hash)) showCoaches();
   else showList();
 }
 addEventListener("hashchange", route);
@@ -865,7 +966,7 @@ addEventListener("resize", () => {  // phones fire resize when the address bar h
   lastWidth = innerWidth; clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { if (lastGame) renderGame(lastGame); }, 150);
 });
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (view === "list") showList(); else if (lastGame) showGame(lastGame.id); } });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (view === "list") showList(); else if (view === "coaches") showCoaches(); else if (lastGame) showGame(lastGame.id); } });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (lastGame) renderGame(lastGame); else if (view === "list") showList(); });
 route();
 </script>

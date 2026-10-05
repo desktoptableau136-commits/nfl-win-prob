@@ -14,6 +14,7 @@ the browser and runs the exported XGBoost trees in JS, so no server does any wor
 .venv\Scripts\python -m live.fourth        # docs/fourth.json    (4th-down helper odds)
 .venv\Scripts\python -m live.leverage      # docs/leverage.json  ("stakes" gain/turnover odds + typical swing)
 .venv\Scripts\python -m live.two_point     # docs/twopoint.json  (kick-or-go-for-2; --chart just reprints the chart)
+.venv\Scripts\python -m live.watch         # docs/watch.json     ("Watch now": 5-minute WP movement table + stakes nudge)
 .venv\Scripts\python -m live.excitement    # docs/excitement.json
 .venv\Scripts\python -m live.compare_espn 2025   # ~10 min season replay vs ESPN; prints VS_ESPN and CALIBRATION tables
 .venv\Scripts\python -m live.stamp         # REQUIRED before pushing any change to docs/js (see below)
@@ -46,7 +47,10 @@ Neutral sites average over both values of `home`.
   It handles kickoff placeholders after scores and `pat_pending` when a TD's try hasn't been posted.
 - `index.html` then chains the enrichers: `loadGame(id).then(addFourthDowns).then(addLeverage).then(addConversions)`.
   Each enricher annotates plays and `game.now` in place and returns the game.
-- The games list calls `addLeverage` on every live game to rank them for "Watch now".
+- The games list runs `addLeverage` then `addWatch` (watch.js) on every live game; "Watch now" ranks by `game.watch.move`.
+- The coach report card (`#/coaches`, coaches.js) runs `loadGame → addFourthDowns → addConversions` on every finished
+  game of a season and keeps the graded calls in localStorage, keyed by the script stamp (a new stamp regrades).
+  It loads summaries with `{ keep: false }` so a season of JSON doesn't pile up in espn.js's fetch cache.
 - All UI (panels, SVG chart, the About section's `VS_ESPN` and `CALIBRATION` constants) lives in the single file `docs/index.html`.
 
 **Python builds tables; JS mirrors the math.** Each helper has a Python builder that measures the ingredients

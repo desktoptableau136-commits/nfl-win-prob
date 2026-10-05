@@ -7,7 +7,7 @@
 // - a play's start/end hold down, distance, yardsToEndzone and the team with the ball
 // - odds `spread` is the HOME team's line: -3.5 means home favored by 3.5
 
-import { predict } from "./model.js?v=734f5105";
+import { predict } from "./model.js?v=c92a5518";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 const SUMMARY_URL = id => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`;
@@ -22,13 +22,14 @@ const EXPECTED_PAT = 0.95;    // points a TD is "really" worth before the extra 
 
 // ---------- fetching ----------
 const cache = new Map();  // url -> {time, promise}
-async function fetchJSON(url, maxAgeMs = 10000) {
+async function fetchJSON(url, maxAgeMs = 10000, keep = true) {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.time < maxAgeMs) return hit.promise;
   const promise = fetch(url, { cache: "no-store" }).then(r => {
     if (!r.ok) throw new Error(`ESPN ${r.status}`);
     return r.json();
   });
+  if (!keep) return promise;  // one-off reads (e.g. a whole season) shouldn't sit in memory
   cache.set(url, { time: Date.now(), promise });
   promise.catch(() => cache.delete(url));
   return promise;
@@ -245,8 +246,8 @@ async function archivedOdds(gameId) {
 }
 
 /** Everything the game page needs: teams, status, WP now, and a WP point per snap. */
-export async function loadGame(gameId, liveSituation = null) {
-  const summary = await fetchJSON(SUMMARY_URL(gameId));
+export async function loadGame(gameId, liveSituation = null, { keep = true } = {}) {
+  const summary = await fetchJSON(SUMMARY_URL(gameId), 10000, keep);
   if (homeSpread(summary.pickcenter || summary.odds) === null) summary.pickcenter = await archivedOdds(gameId);
   const game = parseGame(summary, liveSituation);
   const points = [...game.situations, ...(game.now ? [game.now] : [])];
@@ -288,4 +289,21 @@ export async function loadGames({ week, seasontype, year } = {}) {
   const order = { in: 0, pre: 1, post: 2 };
   games.sort((a, b) => (order[a.state] ?? 3) - (order[b.state] ?? 3) || String(a.date).localeCompare(String(b.date)));
   return { week: sb.week?.number, seasontype: sb.season?.type, year: sb.season?.year, games };
+}
+
+/** Every regular-season game of a season so far: { year, teams: {id: team}, games: [{id, week, state}] }.
+ *  With no year, the current season (or the last one, during the preseason). */
+export async function seasonGames(year = null) {
+  const sb = await fetchJSON(SCOREBOARD_URL, 60000);
+  const current = sb.season?.year, type = sb.season?.type;
+  year = Number(year) || (type === 1 ? current - 1 : current);
+  const lastWeek = year === current && type === 2 ? sb.week?.number || 18 : 18;
+  const weeks = await Promise.all(Array.from({ length: lastWeek }, (_, i) => i + 1).map(week =>
+    fetchJSON(`${SCOREBOARD_URL}?week=${week}&seasontype=2&dates=${year}`, 60000).then(w => [week, w])));
+  const teams = {}, games = [];
+  for (const [week, w] of weeks) for (const event of w.events || []) {
+    for (const c of event.competitions[0].competitors) teams[String(c.team.id)] ??= teamInfo(c);
+    games.push({ id: event.id, week, state: event.status.type.state });
+  }
+  return { year, current: year === current, teams, games };
 }

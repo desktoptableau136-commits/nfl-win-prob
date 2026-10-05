@@ -1,8 +1,8 @@
 // "What's at stake on the next snap": plays the next snap out many ways and averages how far
 // win probability moves. The odds come from docs/leverage.json (see live/leverage.py, which
 // uses the same recipe to measure a typical snap; keep the two in step).
-import { predict } from "./model.js?v=734f5105";
-import { choices, loadTables as loadFourth } from "./fourth.js?v=734f5105";
+import { predict } from "./model.js?v=c92a5518";
+import { choices, loadTables as loadFourth } from "./fourth.js?v=c92a5518";
 
 const KICKOFF_YARDLINE = 70;
 const EXPECTED_PAT = 0.95;
