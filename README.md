@@ -41,6 +41,7 @@ To update it, push again.
 
 Pages refresh themselves: every 15 seconds during a live game.
 Use the ‹ › arrows to browse other weeks, and open any finished game to replay its chart.
+Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to open it full screen like an app.
 
 ## Retraining the model
 
@@ -50,6 +51,7 @@ Use the ‹ › arrows to browse other weeks, and open any finished game to repl
 
 Trains on 2006–2025, saves `models/wp_live.json`, and re-exports `docs/model.json` for the page.
 Re-run after each season (update `SEASONS` in `live/train.py`), then push to update the hosted page.
+Then run `.venv\Scripts\python -m live.excitement` to refresh the "Excitement" comparison (`docs/excitement.json`).
 
 ## Files
 
@@ -59,10 +61,12 @@ Re-run after each season (update `SEASONS` in `live/train.py`), then push to upd
 | `live/model.py` | Model features + training setup (shared by training and export) |
 | `live/train.py` | Trains the live model (includes overtime) and exports it for the page |
 | `live/export_site_model.py` | Converts the XGBoost model into compact `docs/model.json` |
+| `live/excitement.py` | Builds `docs/excitement.json`: how much WP moved in 2021–25 games, for the game summary |
 | `live/server.py` | Tiny local web server for `docs/` (home Wi-Fi use) |
 | `docs/index.html` | The dashboard page (layout, chart, lists) |
 | `docs/js/espn.js` | Reads ESPN's feed and rebuilds the situation before every play |
 | `docs/js/model.js` | Runs the model's 1,500 decision trees in the browser |
+| `docs/manifest.webmanifest`, `docs/icons/` | Lets phones install the page as a home-screen app |
 
 ## Known limitations
 

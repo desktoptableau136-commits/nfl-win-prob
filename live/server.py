@@ -18,7 +18,8 @@ PORT = 8000
 class Handler(SimpleHTTPRequestHandler):
     # Windows can map .js to text/plain, which browsers refuse for modules
     extensions_map = {**SimpleHTTPRequestHandler.extensions_map,
-                      ".js": "text/javascript", ".json": "application/json", ".html": "text/html"}
+                      ".js": "text/javascript", ".json": "application/json", ".html": "text/html",
+                      ".webmanifest": "application/manifest+json"}
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")  # always pick up a retrained model

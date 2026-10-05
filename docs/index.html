@@ -6,7 +6,12 @@
 <title>Live Win Probability</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Live NFL win probability from a homemade XGBoost model, updated every play.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>">
+<link rel="icon" href="icons/favicon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Win Prob">
 <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
 <style>
@@ -22,8 +27,20 @@
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
   a { color: inherit; text-decoration: none; }
   .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 40px; }
+  #app.gameview, body.gameview header.top .wrap { max-width: 1180px; }
   header.top { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
   header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 52px; padding-bottom: 0; }
+
+  /* compact score bar that stays on screen once the scoreboard scrolls away */
+  #mini { display: none; border-top: 1px solid var(--line); }
+  #mini.show { display: block; }
+  #mini .wrap { display: block; height: auto; padding-top: 6px; padding-bottom: 7px; max-width: 1180px; }
+  #mini .line { display: flex; align-items: center; gap: 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  #mini img { width: 20px; height: 20px; object-fit: contain; }
+  #mini .sc { font-weight: 750; }
+  #mini .clk { color: var(--muted); font-size: 12.5px; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #mini .wp { font-weight: 750; white-space: nowrap; }
+  #mini .wpbar { height: 4px; margin-top: 5px; }
   .brand { font-weight: 700; letter-spacing: -0.01em; }
   .muted { color: var(--muted); }
   .small { font-size: 12.5px; }
@@ -93,6 +110,34 @@
   .chip { font-size: 12.5px; font-weight: 700; border-radius: 7px; padding: 3px 0; text-align: center; color: #fff; align-self: start; font-variant-numeric: tabular-nums; }
   .chip.flat { background: var(--line); color: var(--muted); font-weight: 500; }
   .plays .meta { font-size: 12px; color: var(--muted); }
+  .plays li.tap { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .plays li.tap:active { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .plays li.key { background: color-mix(in srgb, var(--ink) 4%, transparent); margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
+  .plays li.picked { box-shadow: inset 3px 0 0 var(--ink); }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase;
+    border-radius: 4px; padding: 1px 5px; margin: 0 5px 2px 0; color: #fff; background: var(--muted); vertical-align: 1px; }
+  .tag.good { background: var(--good); }
+  .tag.bad { background: var(--accent); }
+  .panelhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .panelhead h2 { margin: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; padding: 6px 10px; min-height: 32px; cursor: pointer; }
+  .seg button.on { background: var(--ink); color: var(--card); font-weight: 650; }
+  .linkbtn { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; padding: 4px 0; }
+
+  /* game summary */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .stat .d { font-size: 12.5px; color: var(--muted); }
+
+  /* wide screens: chart on the left (stays put), plays on the right */
+  #chartpanel { scroll-margin-top: 110px; }
+  @media (min-width: 820px) {
+    .cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0 14px; align-items: start; }
+    .cols .colA { position: sticky; top: var(--stick, 64px); max-height: calc(100vh - var(--stick, 64px)); overflow-y: auto;
+      padding-bottom: 12px; scrollbar-width: thin; }
+  }
   .plays .txt { font-size: 13.5px; }
   .more { margin-top: 8px; width: 100%; }
   .note { font-size: 12px; color: var(--muted); margin-top: 16px; }
@@ -103,7 +148,7 @@
 <header class="top"><div class="wrap">
   <a class="brand" href="#/">🏈 Live Win Probability</a>
   <span id="status"></span>
-</div></header>
+</div><div id="mini"></div></header>
 <main class="wrap" id="app"><p class="empty">Loading…</p></main>
 
 <script type="module">
@@ -229,9 +274,13 @@ function gameCard(g) {
 }
 
 // ---------- single game ----------
-let showEspn = true, showAll = false, swingsOpen = false, lastGame = null, cursor = null;
+let showEspn = true, showAll = false, swingsOpen = false, keyOnly = false, lastGame = null, cursor = null;
+let pickedId = null, chartShow = null, boardObserver = null;
 try { showEspn = localStorage.getItem("showEspn") !== "0"; } catch (e) {}
 try { swingsOpen = localStorage.getItem("swingsOpen") === "1"; } catch (e) {}
+try { keyOnly = localStorage.getItem("keyOnly") === "1"; } catch (e) {}
+let excitement = null;
+fetch("excitement.json").then(r => r.ok ? r.json() : null).then(x => { excitement = x; if (lastGame) renderGame(lastGame); }, () => {});
 
 async function showGame(id) {
   view = "game:" + id;
@@ -293,50 +342,161 @@ function renderGame(g) {
         showEspn = e.target.checked; try { localStorage.setItem("showEspn", showEspn ? "1" : "0"); } catch (err) {}
         drawChart(chartBox, readout, g, col);
       } }), "Show ESPN's model");
-    nodes.push(el("section", { class: "panel" },
+    // On wide screens colA (chart side) and colB (plays) sit side by side; on phones they stack
+    const colA = el("div", { class: "colA" }), colB = el("div", { class: "colB" });
+    colA.append(el("section", { class: "panel", id: "chartpanel" },
       el("div", { class: "charthead" }, el("h2", {}, "Win probability"), toggle), chartBox, readout));
     requestAnimationFrame(() => drawChart(chartBox, readout, g, col));
 
+    if (g.state !== "pre") colA.append(summaryPanel(g, col));
+
+    const tags = new Map(g.points.map((p, i) => [p, playTags(p, g.points[i + 1])]));
     const swings = g.points.filter(p => p.swing !== undefined && p.kind !== "now")
       .sort((a, b) => Math.abs(b.swing) - Math.abs(a.swing)).slice(0, 5);
     if (swings.length) {
       // Collapsed by default so the chart and play by play sit together; the top swing peeks out
       const top = swings[0], topCol = top.swing >= 0 ? col.home : col.away;
-      nodes.push(el("details", { class: "panel", ...(swingsOpen ? { open: "" } : {}), ontoggle: e => {
+      colA.append(el("details", { class: "panel", ...(swingsOpen ? { open: "" } : {}), ontoggle: e => {
         swingsOpen = e.target.open; try { localStorage.setItem("swingsOpen", swingsOpen ? "1" : "0"); } catch (err) {}
       } },
         el("summary", {}, el("h2", {}, "Biggest swings"),
-          el("span", { class: "peek" }, top.period ? `Q${top.period > 4 ? "OT" : top.period} ${top.clock}` : "",
+          el("span", { class: "peek" }, when(top),
             el("span", { class: "chip", style: `background:${topCol};color:${onColor(topCol)}` },
               `${(top.swing >= 0 ? g.home : g.away).abbr} +${Math.round(Math.abs(top.swing) * 100)}`)),
           el("span", { class: "caret" }, "›")),
-        playList(swings, g, col)));
+        playList(swings, g, col, tags)));
     }
 
-    const plays = g.points.filter(p => p.kind !== "now" && p.kind !== "final").reverse();
+    const all = g.points.filter(p => p.kind !== "now" && p.kind !== "final").reverse();
+    const plays = keyOnly ? all.filter(p => tags.get(p).length) : all;
     const shown = showAll ? plays : plays.slice(0, 8);
-    nodes.push(el("section", { class: "panel" }, el("h2", {}, "Play by play"), playList(shown, g, col),
+    const seg = el("div", { class: "seg", role: "group", "aria-label": "Which plays" },
+      [["All", false], ["Key plays", true]].map(([label, v]) => el("button", { class: keyOnly === v ? "on" : "",
+        onclick: () => { keyOnly = v; try { localStorage.setItem("keyOnly", v ? "1" : "0"); } catch (err) {} renderGame(g); } }, label)));
+    colB.append(el("section", { class: "panel" }, el("div", { class: "panelhead" }, el("h2", {}, "Play by play"), seg),
+      shown.length ? playList(shown, g, col, tags) : el("p", { class: "muted small" }, "No key plays yet."),
       plays.length > 8 ? el("button", { class: "btn more", onclick: () => { showAll = !showAll; renderGame(g); } },
         showAll ? "Show fewer" : `Show all ${plays.length} plays`) : null));
+    nodes.push(el("div", { class: "cols" }, colA, colB));
   } else if (g.state === "pre") {
     nodes.push(el("p", { class: "empty" }, "Game hasn't started. This page updates automatically once it does."));
   }
   nodes.push(el("p", { class: "note" },
     "Our model: XGBoost trained on 2006–2025 NFL play-by-play (nflverse), running right here in your browser. Live data: ESPN. ",
-    "Swing = how much win probability moved from the start of that play to the next snap."));
+    "Swing = how much win probability moved from the start of that play to the next snap. Tap any play to find it on the chart."));
+  $app.className = "wrap gameview"; document.body.classList.add("gameview");
   $app.replaceChildren(...nodes);
+  renderMini(g, col, board);
 }
 
-function playList(points, g, col) {
+const when = p => p.period ? `${p.period > 4 ? "OT" : "Q" + p.period} ${p.clock}` : "";
+
+// Labels for the plays worth noticing. `next` is the following snap, which tells us how a 4th down ended.
+function playTags(p, next) {
+  if (!p.play_id) return [];
+  const k = (p.kind || "").toLowerCase(), t = (p.text || "").toLowerCase(), tags = [];
+  const fg = k.includes("field goal");
+  if (p.scoring) tags.push(fg ? ["FG", ""] : k.includes("safety") || t.includes("safety") ? ["Safety", ""] : ["TD", ""]);
+  else if (fg) tags.push([k.includes("block") ? "FG blocked" : "FG missed", "bad"]);
+  if (p.turnover) tags.push([k.includes("intercept") || t.includes("intercept") ? "INT"
+    : k.includes("fumble") || t.includes("fumble") ? "Fumble" : "Turnover", "bad"]);
+  if (p.down === 4 && !fg && !k.includes("punt") && !k.includes("penalty") && !p.turnover && !p.scoring && next) {
+    if (next.posteam === p.posteam && next.down === 1) tags.push(["4th down: converted", "good"]);
+    else if (next.posteam && next.posteam !== p.posteam) tags.push(["4th down: stopped", "bad"]);
+  }
+  return tags;
+}
+
+function playList(points, g, col, tags) {
   return el("ul", { class: "plays" }, points.map(p => {
     const s = p.swing ?? 0;
     const gainer = s >= 0 ? g.home : g.away;
     const chip = Math.abs(s) < 0.005 ? el("span", { class: "chip flat" }, "±0")
       : el("span", { class: "chip", style: `background:${s >= 0 ? col.home : col.away};color:${onColor(s >= 0 ? col.home : col.away)}` }, `${gainer.abbr} +${Math.round(Math.abs(s) * 100)}`);
-    return el("li", {}, chip, el("div", {},
-      el("div", { class: "meta" }, [p.period ? `Q${p.period > 4 ? "OT" : p.period} ${p.clock}` : "", p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
-      el("div", { class: "txt" }, p.text || "")));
+    const t = tags.get(p) || [];
+    const cls = ["tap", t.length ? "key" : "", p.play_id === pickedId ? "picked" : ""].filter(Boolean).join(" ");
+    return el("li", { class: cls, "data-play": p.play_id, role: "button", tabindex: "0", onclick: () => pick(p) }, chip, el("div", {},
+      el("div", { class: "meta" }, [when(p), p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
+      el("div", { class: "txt" }, t.map(([label, c]) => el("span", { class: "tag " + c }, label)), p.text || "")));
   }));
+}
+
+// Tapping a play pins it on the chart (until "Back to now" or touching the chart).
+function pick(p) {
+  pickedId = p.play_id;
+  document.querySelectorAll(".plays li").forEach(li => li.classList.toggle("picked", li.dataset.play === pickedId));
+  if (chartShow) chartShow(p, true);
+  const panel = document.getElementById("chartpanel");
+  const r = panel.getBoundingClientRect(), top = document.querySelector("header.top").getBoundingClientRect().bottom;
+  if (r.top < top || r.top > innerHeight * 0.5) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function unpick() {
+  pickedId = null;
+  document.querySelectorAll(".plays li.picked").forEach(li => li.classList.remove("picked"));
+}
+
+function summaryPanel(g, col) {
+  const pts = g.points.filter(p => p.kind !== "final");
+  const done = g.state === "post";
+  const stats = [];
+  // whose low point to show: the winner, or whoever the model favors right now
+  const side = done ? (g.home.score > g.away.score ? "home" : g.home.score < g.away.score ? "away" : null)
+    : g.wp_home >= 0.5 ? "home" : "away";
+  if (side && pts.length) {
+    const team = g[side], wpOf = p => side === "home" ? p.wp_home : 1 - p.wp_home;
+    const low = pts.reduce((a, b) => wpOf(b) < wpOf(a) ? b : a);
+    stats.push(["Lowest point", el("span", { style: `color:${col[side]}` }, `${team.abbr} ${pct(wpOf(low))}`),
+      [done && wpOf(low) < 0.25 ? "Comeback win" : "", when(low) || "Start of game"].filter(Boolean).join(" · ")]);
+    const first = wpOf(pts[0]);
+    stats.push([done ? "Winner at kickoff" : "At kickoff", el("span", { style: `color:${col[side]}` }, `${team.abbr} ${pct(first)}`),
+      done && first < 0.4 ? "Upset" : ""]);
+  }
+  let leader = 0, changes = 0;
+  for (const p of g.points) {
+    const d = Math.sign(p.home_score - p.away_score);
+    if (d && leader && d !== leader) changes++;
+    if (d) leader = d;
+  }
+  stats.push(["Lead changes", changes, done ? "" : "so far"]);
+  const moved = g.points.reduce((t, p) => t + Math.abs(p.swing ?? 0), 0);
+  let beat = "";
+  if (excitement) {
+    const share = Math.max(0, Math.min(99, excitement.percentiles.filter(v => v < moved).length - 1));
+    beat = `${done ? "More" : "Already more"} than ${share}% of ${excitement.seasons[0]}–${String(excitement.seasons[1]).slice(2)} games`;
+  }
+  stats.push(["Excitement", moved.toFixed(1), beat]);
+  return el("section", { class: "panel" }, el("h2", {}, done ? "Game summary" : "So far"),
+    el("div", { class: "stats" }, stats.map(([k, v, d]) => el("div", { class: "stat" },
+      el("div", { class: "k" }, k), el("div", { class: "v" }, v), d ? el("div", { class: "d" }, d) : null))),
+    el("p", { class: "muted small", style: "margin:10px 0 0" },
+      "Excitement = how far the win probability line travels, added up play by play (a full swing from 0% to 100% counts 1)."));
+}
+
+// The compact score bar in the header, shown once the big scoreboard scrolls off screen.
+function renderMini(g, col, board) {
+  const $mini = document.getElementById("mini");
+  const wp = g.wp_home, lead = wp >= 0.5 ? g.home : g.away;
+  const right = g.state === "post" ? "Final" : g.state === "pre" ? "" : `${lead.abbr} ${pct(Math.max(wp, 1 - wp))}`;
+  $mini.replaceChildren(el("div", { class: "wrap" },
+    el("div", { class: "line" },
+      el("img", { src: g.away.logo, alt: "" }), el("span", { class: "sc" }, `${g.away.abbr} ${g.state === "pre" ? "" : g.away.score}`),
+      el("span", { class: "clk" }, [g.detail, g.state === "in" && g.now?.down_text].filter(Boolean).join(" · ")),
+      el("span", { class: "sc" }, `${g.state === "pre" ? "" : g.home.score} ${g.home.abbr}`), el("img", { src: g.home.logo, alt: "" }),
+      right ? el("span", { class: "wp", style: `color:${wp >= 0.5 ? col.home : col.away}` }, right) : null),
+    g.state === "post" ? null : el("div", { class: "wpbar" },
+      el("div", { style: `width:${(1 - wp) * 100}%;background:${col.away}` }),
+      el("div", { style: `width:${wp * 100}%;background:${col.home}` }))));
+  boardObserver?.disconnect();
+  const header = document.querySelector("header.top");
+  boardObserver = new IntersectionObserver(([e]) => {
+    $mini.classList.toggle("show", !e.isIntersecting && !!view?.startsWith("game:"));
+    document.documentElement.style.setProperty("--stick", header.offsetHeight + 12 + "px");
+  }, { rootMargin: "-52px 0px 0px 0px" });
+  boardObserver.observe(board);
+}
+function hideMini() {
+  boardObserver?.disconnect(); boardObserver = null;
+  document.getElementById("mini").classList.remove("show");
 }
 
 // ---------- chart ----------
@@ -386,31 +546,37 @@ function drawChart(box, readout, g, col) {
   const dot = s("circle", { r: 4.5, fill: ink, stroke: "var(--card)", "stroke-width": 2, opacity: 0 });
   svg.append(cur, dot);
 
+  const latest = pts[pts.length - 1];
   const show = (p, live) => {
     cur.setAttribute("x1", X(p.minute)); cur.setAttribute("x2", X(p.minute)); cur.setAttribute("opacity", live ? .35 : 0);
     dot.setAttribute("cx", X(p.minute)); dot.setAttribute("cy", Y(p.wp_home)); dot.setAttribute("opacity", 1);
     const lead = p.wp_home >= 0.5 ? g.home : g.away;
     const espn = p.espn_wp_home !== undefined ? ` · ESPN ${pct(p.wp_home >= 0.5 ? p.espn_wp_home : 1 - p.espn_wp_home)}` : "";
-    readout.replaceChildren(
-      el("div", { class: "meta" }, [p.period ? `Q${p.period > 4 ? "OT" : p.period} ${p.clock}` : "", p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
+    readout.replaceChildren(...[
+      el("div", { class: "meta" }, [when(p), p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
       el("div", {}, el("strong", { style: `color:${p.wp_home >= 0.5 ? col.home : col.away}` }, `${lead.abbr} ${pct(Math.max(p.wp_home, 1 - p.wp_home))}`), el("span", { class: "muted" }, espn)),
-      el("div", {}, p.text === "Now" ? "Current situation" : p.text || ""));
+      el("div", {}, p.text === "Now" ? "Current situation" : p.text || ""),
+      pickedId && p.play_id === pickedId ? el("button", { class: "linkbtn", onclick: () => { unpick(); show(latest, false); } }, "Back to now") : null,
+    ].filter(Boolean));
   };
   const nearest = evt => {
     const r = svg.getBoundingClientRect();
     const m = ((evt.clientX - r.left) * (W / r.width) - pad.l) / (W - pad.l - pad.r) * xmax;
     return pts.reduce((best, p) => Math.abs(p.minute - m) < Math.abs(best.minute - m) ? p : best, pts[0]);
   };
-  svg.addEventListener("pointermove", e => { cursor = nearest(e); show(cursor, true); });
-  svg.addEventListener("pointerdown", e => { cursor = nearest(e); show(cursor, true); });
-  svg.addEventListener("pointerleave", () => { cursor = null; show(pts[pts.length - 1], false); });
-  show(pts[pts.length - 1], false);
+  svg.addEventListener("pointermove", e => { unpick(); cursor = nearest(e); show(cursor, true); });
+  svg.addEventListener("pointerdown", e => { unpick(); cursor = nearest(e); show(cursor, true); });
+  svg.addEventListener("pointerleave", () => { cursor = null; show(latest, false); });
+  const pinned = pickedId && pts.find(p => p.play_id === pickedId);
+  if (pinned) show(pinned, true); else show(latest, false);
+  chartShow = show;
   box.replaceChildren(svg);
 }
 
 // ---------- routing ----------
 function route() {
-  clearTimeout(timer); showAll = false; lastGame = null; window.scrollTo(0, 0);
+  clearTimeout(timer); showAll = false; lastGame = null; pickedId = null; chartShow = null; window.scrollTo(0, 0);
+  hideMini(); $app.className = "wrap"; document.body.classList.remove("gameview");
   const m = location.hash.match(/^#\/game\/(\d+)/);
   if (m) { $app.replaceChildren(el("p", { class: "empty" }, "Loading game…")); showGame(m[1]); }
   else showList();
