@@ -12,8 +12,8 @@ the same snaps, read from ESPN's feed the same way the dashboard does.
 ESPN's number for a play is its win probability *after* the play; the page already shifts it
 onto the next snap, so the two are compared snap for snap.
 
-Prints a Brier score table (lower is better). Paste it into VS_ESPN in docs/index.html
-(the "About the model" section) and the table in README.md.
+Prints a Brier score table (lower is better) and a calibration table. Paste them into VS_ESPN
+and CALIBRATION in docs/index.html (the "About the model" section) and the table in README.md.
 """
 import json
 import re
@@ -140,6 +140,15 @@ def score(games: list[dict]):
     closer = sum(brier(ours, gid == g) < brier(espn, gid == g) for g in set(gid))
     print(f"\nOurs was closer in {closer} of {n_games} games.")
     print("\nFor VS_ESPN in docs/index.html:\n" + json.dumps(table))
+
+    # calibration: snaps grouped by the chance shown (from both teams' side), vs how often that team won
+    y = np.r_[won, 1 - won]
+    cal = {}
+    for name, p in (("ours", ours), ("espn", espn)):
+        p = np.r_[p, 1 - p]
+        b = np.minimum((p * 10).astype(int), 9)
+        cal[name] = [[round(float(p[b == k].mean()), 3), round(float(y[b == k].mean()), 3)] for k in range(10)]
+    print("\nFor CALIBRATION in docs/index.html:\n" + json.dumps(cal))
 
 
 def main():

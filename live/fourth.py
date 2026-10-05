@@ -8,11 +8,14 @@ For each 4th down the page compares three choices by the win probability they le
   Field goal  P(make) x WP(up 3, kick off)                    +  P(miss) x WP(opponent ball at the kick spot)
   Punt        WP(opponent ball where punts from here usually end up)
 
+It also saves extra point and 2-point success rates, for a kick-or-go-for-2 helper (not on the page yet).
+
 This script measures the ingredients from recent seasons:
   - conversion chance by yards to go (3rd and 4th downs, fitted together; 4th downs are rarer)
   - typical yards gained on a successful conversion
   - field goal make chance by kick distance
   - where the receiving team usually starts after a punt from each spot
+  - extra point and 2-point conversion success rates
 """
 import json
 from pathlib import Path
@@ -27,7 +30,8 @@ OUT = Path(__file__).resolve().parent.parent / "docs" / "fourth.json"
 COLS = ["season", "game_id", "play_id", "posteam", "defteam", "down", "ydstogo", "yardline_100", "goal_to_go",
         "play_type", "yards_gained", "first_down", "touchdown", "fumble_lost", "interception",
         "field_goal_attempt", "field_goal_result", "kick_distance", "punt_attempt", "punt_blocked",
-        "half_seconds_remaining", "qtr"]
+        "half_seconds_remaining", "qtr", "extra_point_attempt", "extra_point_result",
+        "two_point_attempt", "two_point_conv_result"]
 
 
 def conversion(df):
@@ -88,17 +92,29 @@ def punts(df):
     return [round(float(v), 1) for v in smooth]
 
 
+def conversions(df):
+    """Extra point and 2-point conversion success rates (for the kick-or-go-for-2 helper)."""
+    xp = df[df.extra_point_attempt == 1]
+    two = df[df.two_point_attempt == 1]
+    pat = float((xp.extra_point_result == "good").mean())
+    two_pt = float((two.two_point_conv_result == "success").mean())
+    print(f"Extra point {pat:.3f} ({len(xp)} tries), 2-point conversion {two_pt:.3f} ({len(two)} tries)")
+    return round(pat, 3), round(two_pt, 3)
+
+
 def main():
     df = nfl.load_pbp(SEASONS).select(COLS).to_pandas()
     conv, conv_goal, gain = conversion(df)
     fg = field_goals(df)
     punt = punts(df)
+    pat, two_pt = conversions(df)
     OUT.write_text(json.dumps({
         "seasons": [SEASONS[0], SEASONS[-1]],
         "convert": conv, "convert_goal": conv_goal,  # index = yards to go - 1 (1..20)
         "gain": gain,                                 # median yards on a conversion, index = yards to go - 1
         "fg_make": fg, "fg_min_distance": 18,         # index = kick distance - 18
         "punt_opp_yardline": punt,                    # index = yardline_100 - 1 → receiver's yardline_100
+        "pat": pat, "two_pt": two_pt,                 # success rates after a touchdown
     }))
     print(f"Saved {OUT}")
 

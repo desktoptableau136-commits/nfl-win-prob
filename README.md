@@ -43,6 +43,9 @@ Pages refresh themselves: every 15 seconds during a live game.
 Use the ‹ › arrows to browse other weeks, and open any finished game to replay its chart.
 On a live 4th down, the game page shows a **4th-down helper**: your team's chance to win
 if it goes for it, kicks a field goal, or punts. Past 4th downs show the model's pick next to what the team did.
+On other live downs, a **Next snap** panel shows the stakes (how far win probability is expected to move,
+where 1× is a typical 1st–3rd down) and the win chance after a touchdown, a first down, no gain, or a turnover.
+With two or more games on, the games list points you to the one whose next snap matters most (**Watch now**).
 Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to open it full screen like an app.
 
 ### How it compares with ESPN
@@ -66,7 +69,7 @@ Ours was closer in 188 of the 284 games; its edge is mostly early in games. The 
 is in the dashboard's "About the model" section at the bottom of the games list.
 
 To redo it (e.g. after the 2026 season), run the command below. It takes about 10 minutes,
-then paste the printed table into `VS_ESPN` in `docs/index.html` and into this README.
+then paste the printed tables into `VS_ESPN` and `CALIBRATION` in `docs/index.html`, and the Brier table into this README.
 
 ```powershell
 .venv\Scripts\python -m playwright install chromium   # once
@@ -86,6 +89,7 @@ Then refresh the two lookup files the page uses:
 ```powershell
 .venv\Scripts\python -m live.excitement   # docs/excitement.json: "Excitement" comparison
 .venv\Scripts\python -m live.fourth       # docs/fourth.json: 4th-down conversion / field goal / punt odds
+.venv\Scripts\python -m live.leverage     # docs/leverage.json: gain/turnover odds and a typical snap's swing, for "stakes"
 ```
 
 ## Files
@@ -98,11 +102,13 @@ Then refresh the two lookup files the page uses:
 | `live/export_site_model.py` | Converts the XGBoost model into compact `docs/model.json` |
 | `live/excitement.py` | Builds `docs/excitement.json`: how much WP moved in 2021–25 games, for the game summary |
 | `live/fourth.py` | Builds `docs/fourth.json`: conversion, field goal and punt odds for the 4th-down helper |
+| `live/leverage.py` | Builds `docs/leverage.json`: gain and turnover odds by down and distance, and a typical snap's expected swing |
 | `live/compare_espn.py` | Replays a whole season through the page with a model that never saw it, and scores it against ESPN |
 | `live/server.py` | Tiny local web server for `docs/` (home Wi-Fi use) |
 | `docs/index.html` | The dashboard page (layout, chart, lists) |
 | `docs/js/espn.js` | Reads ESPN's feed and rebuilds the situation before every play |
 | `docs/js/fourth.js` | 4th-down helper: WP after going for it, kicking, or punting |
+| `docs/js/leverage.js` | "Stakes": plays the next snap out the usual ways and averages how far WP moves |
 | `docs/js/model.js` | Runs the model's 1,500 decision trees in the browser |
 | `docs/manifest.webmanifest`, `docs/icons/` | Lets phones install the page as a home-screen app |
 
@@ -117,3 +123,5 @@ Then refresh the two lookup files the page uses:
 - The 4th-down helper assumes an average offense, kicker and punter, and uses the typical outcome of each choice
   (e.g. the usual gain on a conversion and the usual punt distance), not every possible outcome.
   Treat differences under about 1–2 points of win probability as toss-ups.
+- "Stakes" uses league-average gains for the down and distance; it doesn't know the play call, the offense, or
+  penalties. Checked on 2021–25: snaps it rates 2.5× or more moved WP 8 points on average, under 0.5× about 0.5.

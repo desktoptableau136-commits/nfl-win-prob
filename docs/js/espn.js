@@ -281,7 +281,7 @@ export async function loadGames({ week, seasontype, year } = {}) {
       down_text: comp.situation?.shortDownDistanceText, spread_home: homeSpread(comp.odds) };
     if (state === "pre") g.wp_home = await pregameWp(g.spread_home, neutral);
     else if (state === "post") g.wp_home = finalWp(g);
-    else g.wp_home = await loadGame(event.id, comp.situation).then(x => x.wp_home, () => null);
+    else await loadGame(event.id, comp.situation).then(x => { g.wp_home = x.wp_home; g.now = x.now; }, () => { g.wp_home = null; });
     return g;
   }));
   const order = { in: 0, pre: 1, post: 2 };

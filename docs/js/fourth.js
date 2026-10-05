@@ -9,7 +9,7 @@ const MIN_PUNT_YARDLINE = 30; // nobody punts from inside the opponent's 30
 const SNAP_TO_KICK = 17;      // kick distance = yards to the end zone + 7 (snap) + 10 (end zone)
 
 let tablesPromise = null;
-const loadTables = () => (tablesPromise ??= fetch("fourth.json").then(r => {
+export const loadTables = () => (tablesPromise ??= fetch("fourth.json").then(r => {
   if (!r.ok) throw new Error(`fourth.json: ${r.status}`);
   return r.json();
 }));
@@ -30,7 +30,7 @@ function after(s, { flip, yardline, points = 0, secs }) {
 }
 
 /** The choices for one 4th-down situation. Each outcome is [chance, next situation, offense keeps the ball?]. */
-function choices(s, t) {
+export function choices(s, t) {
   const ytg = s.ydstogo, ytez = s.yardline_100, out = [];
 
   const goal = ytez <= ytg;
