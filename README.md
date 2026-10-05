@@ -37,7 +37,8 @@ on your phone. No server does any work, which is what lets GitHub Pages host it 
 
 Push this folder to a GitHub repo, then **Settings → Pages → Deploy from a branch → `main` / `/docs`**.
 After about a minute, the dashboard is live at `https://<your-username>.github.io/<repo-name>/`.
-To update it, push again.
+To update it, run `.venv\Scripts\python -m live.stamp` (gives the scripts a new version so phones
+don't mix cached old files with new ones), then push again.
 
 Pages refresh themselves: every 15 seconds during a live game.
 Use the ‹ › arrows to browse other weeks, and open any finished game to replay its chart.
@@ -104,6 +105,7 @@ Then refresh the two lookup files the page uses:
 | `live/fourth.py` | Builds `docs/fourth.json`: conversion, field goal and punt odds for the 4th-down helper |
 | `live/leverage.py` | Builds `docs/leverage.json`: gain and turnover odds by down and distance, and a typical snap's expected swing |
 | `live/compare_espn.py` | Replays a whole season through the page with a model that never saw it, and scores it against ESPN |
+| `live/stamp.py` | Stamps script imports with a version (`?v=…`); run before pushing changes to `docs/js` |
 | `live/server.py` | Tiny local web server for `docs/` (home Wi-Fi use) |
 | `docs/index.html` | The dashboard page (layout, chart, lists) |
 | `docs/js/espn.js` | Reads ESPN's feed and rebuilds the situation before every play |

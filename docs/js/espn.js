@@ -7,7 +7,7 @@
 // - a play's start/end hold down, distance, yardsToEndzone and the team with the ball
 // - odds `spread` is the HOME team's line: -3.5 means home favored by 3.5
 
-import { predict } from "./model.js";
+import { predict } from "./model.js?v=211db9a4";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 const SUMMARY_URL = id => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`;
