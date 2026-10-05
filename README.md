@@ -47,18 +47,23 @@ Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to 
 
 ### How it compares with ESPN
 
-On every 2025 game (284 decided games, about 40,000 snaps; the model never trained on 2025),
-scored with the Brier score (lower is better) on the same snaps. ESPN's number for a play is
-posted after the play, so each snap is compared with ESPN's latest number before it:
+Every 2025 game (284 with a winner, about 40,000 snaps) was replayed with a copy of the model
+trained only on 2006–2024 (same recipe, 1,519 trees), so it had never seen these games.
+Scores are Brier scores (lower is better) on the same snaps. ESPN's number for a play is posted
+after the play, so each snap is compared with ESPN's latest number before it:
 
 | | Ours | ESPN |
 |---|---|---|
-| Whole game | **0.157** | 0.165 |
-| 1st quarter | **0.203** | 0.216 |
-| 4th quarter | **0.107** | 0.110 |
-| Overtime | **0.162** | 0.177 |
+| Whole game | **0.159** | 0.165 |
+| 1st quarter | **0.206** | 0.216 |
+| 2nd quarter | **0.181** | 0.188 |
+| 3rd quarter | **0.149** | 0.153 |
+| 4th quarter | **0.109** | 0.110 |
+| Last 5 minutes | 0.089 | 0.089 |
+| Overtime | **0.174** | 0.177 |
 
-Ours was closer in 190 of the 284 games.
+Ours was closer in 188 of the 284 games; its edge is mostly early in games. The same table
+is in the dashboard's "About the model" section at the bottom of the games list.
 
 ## Retraining the model
 

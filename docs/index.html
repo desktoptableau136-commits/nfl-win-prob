@@ -152,6 +152,20 @@
   .stat .v { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.2; }
   .stat .d { font-size: 12.5px; color: var(--muted); }
 
+  /* "About the model" on the games list */
+  .about { font-size: 14px; line-height: 1.5; }
+  .about h3 { font-size: 15px; margin: 16px 0 6px; }
+  .about h3:first-child { margin-top: 0; }
+  .about p { margin: 0 0 8px; }
+  .about ul { margin: 0 0 8px; padding-left: 20px; }
+  .about table { border-collapse: collapse; width: 100%; max-width: 420px; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+  .about th, .about td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  .about th:first-child, .about td:first-child { text-align: left; padding-left: 0; }
+  .about th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .about td.win { font-weight: 750; }
+  .about .small { font-size: 12.5px; color: var(--muted); }
+  .about a { text-decoration: underline; }
+
   /* wide screens: chart on the left (stays put), plays on the right */
   #chartpanel { scroll-margin-top: 110px; }
   @media (min-width: 820px) {
@@ -265,9 +279,40 @@ async function showList() {
 
   const grid = el("div", { class: "grid" }, data.games.map(gameCard));
   $app.replaceChildren(nav, data.games.length ? grid : el("p", { class: "empty" }, "No games this week."),
-    el("p", { class: "note" }, "Pregame percentages come from the betting line alone. Tap a game for the full chart."));
+    el("p", { class: "note" }, "Pregame percentages come from the betting line alone. Tap a game for the full chart."),
+    aboutPanel());
   schedule(showList, data.games.some(g => g.state === "in") ? 20000 : 120000);
   fillSparks(data.games.filter(g => g.state === "post" && !sparkCache.has(g.id)));
+}
+
+// 2025 test: a copy of the model trained on 2006-24 only vs ESPN's number at the same snap (Brier score)
+const VS_ESPN = [["Whole game", 0.159, 0.165], ["1st quarter", 0.206, 0.216], ["2nd quarter", 0.181, 0.188],
+  ["3rd quarter", 0.149, 0.153], ["4th quarter", 0.109, 0.110], ["Last 5 minutes", 0.089, 0.089], ["Overtime", 0.174, 0.177]];
+
+function aboutPanel() {
+  const cell = (v, other) => el("td", { class: v < other ? "win" : "" }, v.toFixed(3));
+  return fold("about", "About the model", "How it works · vs ESPN", el("div", { class: "about" },
+    el("h3", {}, "How it works"),
+    el("p", {}, "The model learned from every NFL play from 2006 to 2025, about 805,000 of them: in each situation, how often did the team with the ball go on to win? Before every snap it looks at:"),
+    el("ul", {},
+      el("li", {}, "the score and the time left in the game and the half"),
+      el("li", {}, "down, yards to go and field position"),
+      el("li", {}, "timeouts left for both teams"),
+      el("li", {}, "the pregame betting line, which counts a lot at kickoff and fades as the game goes on"),
+      el("li", {}, "home field, who gets the second-half kickoff, and overtime")),
+    el("p", {}, "It's 1,519 small decision trees (XGBoost) whose answers add up to a win chance. They run right here in your browser; ESPN's feed only supplies the plays."),
+    el("p", {}, "It follows a few common-sense rules: more yards to go, a worse spot on the field, or a later down never helps the offense."),
+    el("p", {}, "What it doesn't know: injuries or a quarterback change during the game, the weather, or how good a team is beyond what the betting line already says."),
+
+    el("h3", {}, "How it compares with ESPN"),
+    el("p", {}, "We replayed every 2025 game (284 with a winner, about 40,000 snaps) using a copy of the model trained only on 2006–2024, so it had never seen these games, and compared it with the number ESPN showed at the same moment."),
+    el("table", {},
+      el("thead", {}, el("tr", {}, el("th", {}, ""), el("th", {}, "Ours"), el("th", {}, "ESPN"))),
+      el("tbody", {}, VS_ESPN.map(([k, ours, espn]) => el("tr", {}, el("td", {}, k), cell(ours, espn), cell(espn, ours))))),
+    el("p", { class: "small" }, "Brier score: the average squared miss, so lower is better. Always saying 50% scores 0.250; a perfect forecaster scores 0."),
+    el("p", {}, "Ours was closer in 188 of the 284 games. Its edge is biggest early in games; in the last few minutes and overtime the two are about even. ESPN also tends to undersell favorites: when it said 80–90%, that team won 90% of the time."),
+    el("p", {}, "On nflverse's 2025 data it's also level with nflfastR's model, the open-source standard (0.1597 vs 0.1600)."),
+    el("p", { class: "small" }, el("a", { href: "https://github.com/desktoptableau136-commits/nfl-win-prob", target: "_blank", rel: "noopener" }, "Code and details on GitHub"))));
 }
 
 // Finished games never change, so each one's chart is loaded once and kept.
@@ -333,7 +378,7 @@ function gameCard(g) {
 
 // ---------- single game ----------
 let showEspn = true, showAll = false, keyOnly = false, lastGame = null, cursor = null;
-const folds = { swings: false, summary: false };  // collapsible panels: closed each time a game is opened
+const folds = { swings: false, summary: false, about: false };  // collapsible panels: closed each time a page is opened
 let pickedId = null, chartShow = null, boardObserver = null;
 try { showEspn = localStorage.getItem("showEspn") !== "0"; } catch (e) {}
 try { keyOnly = localStorage.getItem("keyOnly") === "1"; } catch (e) {}
@@ -679,7 +724,7 @@ function drawChart(box, readout, g, col) {
 
 // ---------- routing ----------
 function route() {
-  clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = false; pickedId = null; chartShow = null; window.scrollTo(0, 0);
+  clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = folds.about = false; pickedId = null; chartShow = null; window.scrollTo(0, 0);
   hideMini(); $app.className = "wrap"; document.body.classList.remove("gameview");
   const m = location.hash.match(/^#\/game\/(\d+)/);
   if (m) { $app.replaceChildren(el("p", { class: "empty" }, "Loading game…")); showGame(m[1]); }
