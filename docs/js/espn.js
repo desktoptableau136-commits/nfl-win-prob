@@ -11,6 +11,8 @@ import { predict } from "./model.js";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 const SUMMARY_URL = id => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`;
+// ESPN drops betting lines from a game's summary a few weeks after it's played; this API keeps them
+const ODDS_URL = id => `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${id}/competitions/${id}/odds`;
 
 const NOT_SNAPS = new Set(["Kickoff", "Timeout", "Official Timeout", "End Period", "End of Half", "End of Game",
   "End of Regulation", "Two-minute warning", "Coin Toss", "Extra Point Good", "Extra Point Missed",
@@ -108,7 +110,9 @@ function parseGame(summary, liveSituation = null) {
   for (const p of summary.drives?.current?.plays || []) byId.set(p.id, p);
   const plays = [...byId.values()].sort((a, b) => Number(a.sequenceNumber || 0) - Number(b.sequenceNumber || 0));
 
+  // ESPN's number for a play is its win probability *after* that play, so a snap gets the latest one before it
   const espnWp = Object.fromEntries((summary.winprobability || []).map(w => [w.playId, w.homeWinPercentage]));
+  let espnBefore;
   let timeouts = { [homeId]: 3, [awayId]: 3 };
   const openingReceiver = plays.find(p => valid(p.start))?.start.team.id ?? null;
   let score = { [homeId]: 0, [awayId]: 0 };
@@ -155,10 +159,11 @@ function parseGame(summary, liveSituation = null) {
     if (!NOT_SNAPS.has(kind) && valid(start)) {
       situations.push(situation(start.team.id, start.down, start.distance, toEndzone(start, abbrOf),
         per, clockSeconds(p.clock?.displayValue), {}, {
-          play_id: p.id, text, kind, espn_wp_home: espnWp[p.id], down_text: start.downDistanceText || "",
+          play_id: p.id, text, kind, espn_wp_home: espnBefore, down_text: start.downDistanceText || "",
           scoring: !!p.scoringPlay, turnover: !!p.isTurnover,
         }));
     }
+    if (espnWp[p.id] !== undefined) espnBefore = espnWp[p.id];
     const prev = score;
     score = { [homeId]: Number(p.homeScore ?? prev[homeId]), [awayId]: Number(p.awayScore ?? prev[awayId]) };
     gained = { [homeId]: score[homeId] - prev[homeId], [awayId]: score[awayId] - prev[awayId] };
@@ -205,6 +210,7 @@ function parseGame(summary, liveSituation = null) {
       now = situation(homeId, 1, 10, KICKOFF_YARDLINE, Math.max(period, 1), clockNow, {}, { down_text: "Kickoff" });
     }
     now.text = "Now";
+    now.espn_wp_home = espnBefore;
     now.kind = "now";
   }
 
@@ -226,9 +232,22 @@ function finalWp(g) {
   return h > a ? 1 : h < a ? 0 : 0.5;
 }
 
+/** The pregame line from ESPN's odds archive, shaped like the summary's pickcenter (skipping in-game "live" odds). */
+async function archivedOdds(gameId) {
+  try {
+    const odds = await fetchJSON(ODDS_URL(gameId), 3600000);
+    return (odds.items || []).filter(o => !/live/i.test(o.provider?.name || "") && Number.isFinite(o.spread))
+      .map(o => ({ spread: o.spread }));
+  } catch (err) {
+    return [];
+  }
+}
+
 /** Everything the game page needs: teams, status, WP now, and a WP point per snap. */
 export async function loadGame(gameId, liveSituation = null) {
-  const game = parseGame(await fetchJSON(SUMMARY_URL(gameId)), liveSituation);
+  const summary = await fetchJSON(SUMMARY_URL(gameId));
+  if (homeSpread(summary.pickcenter || summary.odds) === null) summary.pickcenter = await archivedOdds(gameId);
+  const game = parseGame(summary, liveSituation);
   const points = [...game.situations, ...(game.now ? [game.now] : [])];
   (await homeWp(points, game.neutral)).forEach((wp, i) => { points[i].wp_home = wp; });
 

@@ -45,6 +45,21 @@ On a live 4th down, the game page shows a **4th-down helper**: your team's chanc
 if it goes for it, kicks a field goal, or punts. Past 4th downs show the model's pick next to what the team did.
 Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to open it full screen like an app.
 
+### How it compares with ESPN
+
+On every 2025 game (284 decided games, about 40,000 snaps; the model never trained on 2025),
+scored with the Brier score (lower is better) on the same snaps. ESPN's number for a play is
+posted after the play, so each snap is compared with ESPN's latest number before it:
+
+| | Ours | ESPN |
+|---|---|---|
+| Whole game | **0.157** | 0.165 |
+| 1st quarter | **0.203** | 0.216 |
+| 4th quarter | **0.107** | 0.110 |
+| Overtime | **0.162** | 0.177 |
+
+Ours was closer in 190 of the 284 games.
+
 ## Retraining the model
 
 ```powershell
@@ -83,7 +98,8 @@ Then refresh the two lookup files the page uses:
 - Overtime estimates are rougher (only 33 games have been played under the current OT rules).
 - Right after a score, the dashboard assumes the kickoff ends up at the receiving team's 30 until the next snap is posted.
 - Before an overtime coin toss, it assumes the home team receives.
-- The pregame line is the sportsbook's closing line as ESPN reports it (DraftKings). Games without a line are treated as even.
+- The pregame line is the sportsbook's closing line as ESPN reports it. ESPN removes lines from a game's feed a few weeks
+  after it's played, so for older games the page reads them from ESPN's odds archive. Games without any line are treated as even.
 - The 4th-down helper assumes an average offense, kicker and punter, and uses the typical outcome of each choice
   (e.g. the usual gain on a conversion and the usual punt distance), not every possible outcome.
   Treat differences under about 1–2 points of win probability as toss-ups.
