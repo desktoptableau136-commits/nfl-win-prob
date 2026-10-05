@@ -41,6 +41,8 @@ To update it, push again.
 
 Pages refresh themselves: every 15 seconds during a live game.
 Use the ‹ › arrows to browse other weeks, and open any finished game to replay its chart.
+On a live 4th down, the game page shows a **4th-down helper**: your team's chance to win
+if it goes for it, kicks a field goal, or punts. Past 4th downs show the model's pick next to what the team did.
 Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to open it full screen like an app.
 
 ## Retraining the model
@@ -51,7 +53,12 @@ Tap any play to find it on the chart. On a phone, use **Add to Home Screen** to 
 
 Trains on 2006–2025, saves `models/wp_live.json`, and re-exports `docs/model.json` for the page.
 Re-run after each season (update `SEASONS` in `live/train.py`), then push to update the hosted page.
-Then run `.venv\Scripts\python -m live.excitement` to refresh the "Excitement" comparison (`docs/excitement.json`).
+Then refresh the two lookup files the page uses:
+
+```powershell
+.venv\Scripts\python -m live.excitement   # docs/excitement.json: "Excitement" comparison
+.venv\Scripts\python -m live.fourth       # docs/fourth.json: 4th-down conversion / field goal / punt odds
+```
 
 ## Files
 
@@ -62,9 +69,11 @@ Then run `.venv\Scripts\python -m live.excitement` to refresh the "Excitement" c
 | `live/train.py` | Trains the live model (includes overtime) and exports it for the page |
 | `live/export_site_model.py` | Converts the XGBoost model into compact `docs/model.json` |
 | `live/excitement.py` | Builds `docs/excitement.json`: how much WP moved in 2021–25 games, for the game summary |
+| `live/fourth.py` | Builds `docs/fourth.json`: conversion, field goal and punt odds for the 4th-down helper |
 | `live/server.py` | Tiny local web server for `docs/` (home Wi-Fi use) |
 | `docs/index.html` | The dashboard page (layout, chart, lists) |
 | `docs/js/espn.js` | Reads ESPN's feed and rebuilds the situation before every play |
+| `docs/js/fourth.js` | 4th-down helper: WP after going for it, kicking, or punting |
 | `docs/js/model.js` | Runs the model's 1,500 decision trees in the browser |
 | `docs/manifest.webmanifest`, `docs/icons/` | Lets phones install the page as a home-screen app |
 
@@ -75,3 +84,6 @@ Then run `.venv\Scripts\python -m live.excitement` to refresh the "Excitement" c
 - Right after a score, the dashboard assumes the kickoff ends up at the receiving team's 30 until the next snap is posted.
 - Before an overtime coin toss, it assumes the home team receives.
 - The pregame line is the sportsbook's closing line as ESPN reports it (DraftKings). Games without a line are treated as even.
+- The 4th-down helper assumes an average offense, kicker and punter, and uses the typical outcome of each choice
+  (e.g. the usual gain on a conversion and the usual punt distance), not every possible outcome.
+  Treat differences under about 1–2 points of win probability as toss-ups.

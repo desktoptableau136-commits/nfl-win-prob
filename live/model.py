@@ -22,8 +22,11 @@ MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "wp_live.json"
 FEATURES = ["score_differential", "diff_time_ratio", "posteam_spread", "spread_time",
             "game_seconds_remaining", "half_seconds_remaining", "down", "ydstogo", "yardline_100",
             "posteam_timeouts_remaining", "defteam_timeouts_remaining", "home", "receive_2h_ko", "is_ot"]
+# Common-sense rules the trees must follow. Without the field-position ones the model can wobble
+# (e.g. right after kickoff), which is harmless on a chart but flips close 4th-down calls.
 MONOTONE = {"score_differential": 1, "diff_time_ratio": 1, "posteam_spread": 1, "spread_time": 1,
-            "posteam_timeouts_remaining": 1, "defteam_timeouts_remaining": -1}
+            "posteam_timeouts_remaining": 1, "defteam_timeouts_remaining": -1,
+            "yardline_100": -1, "ydstogo": -1, "down": -1}
 
 
 def add_features(d: pd.DataFrame) -> pd.DataFrame:

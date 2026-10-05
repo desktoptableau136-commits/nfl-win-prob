@@ -67,6 +67,15 @@ function teamInfo(c) {
 const valid = pos => !!(pos && pos.team && pos.down >= 1 && pos.down <= 4
   && pos.yardsToEndzone >= 1 && pos.yardsToEndzone <= 99 && (pos.distance || 0) >= 1);
 
+// ESPN's yardsToEndzone is wrong on punts (it repeats the yard line, so a punt from your own 6
+// looks like 4th down at the opponent's 6). The down-and-distance text ("4th & 17 at NYJ 6") is right.
+function toEndzone(pos, abbrOf) {
+  const m = (pos.downDistanceText || "").match(/ at (?:([A-Z]+) )?(\d+)$/);
+  if (!m) return pos.yardsToEndzone;
+  const n = Number(m[2]);
+  return !m[1] ? 50 : m[1] === abbrOf[pos.team.id] ? 100 - n : n;
+}
+
 /** The opening kickoff from each side; averaged since we don't know the coin toss yet. */
 function pregameStates(spreadHome) {
   const fav = spreadHome || 0;
@@ -85,6 +94,7 @@ function parseGame(summary, liveSituation = null) {
   const teams = Object.fromEntries(comp.competitors.map(c => [c.homeAway, teamInfo(c)]));
   const homeId = teams.home.id, awayId = teams.away.id;
   const abbrToId = { [teams.home.abbr]: homeId, [teams.away.abbr]: awayId };
+  const abbrOf = { [homeId]: teams.home.abbr, [awayId]: teams.away.abbr };
   const status = comp.status;
   const state = status.type.state;  // pre / in / post
   const period = status.period || 0;
@@ -143,7 +153,7 @@ function parseGame(summary, liveSituation = null) {
     }
     const start = p.start || {};
     if (!NOT_SNAPS.has(kind) && valid(start)) {
-      situations.push(situation(start.team.id, start.down, start.distance, start.yardsToEndzone,
+      situations.push(situation(start.team.id, start.down, start.distance, toEndzone(start, abbrOf),
         per, clockSeconds(p.clock?.displayValue), {}, {
           play_id: p.id, text, kind, espn_wp_home: espnWp[p.id], down_text: start.downDistanceText || "",
           scoring: !!p.scoringPlay, turnover: !!p.isTurnover,
@@ -189,7 +199,7 @@ function parseGame(summary, liveSituation = null) {
       now = situation(receiver, 1, 10, KICKOFF_YARDLINE, period, clockNow, pendingPat, { down_text: "Kickoff" });
     } else if (valid(end) || lastEnd) {
       const e = valid(end) ? end : lastEnd;
-      now = situation(e.team.id, e.down, e.distance, e.yardsToEndzone, period, clockNow, {},
+      now = situation(e.team.id, e.down, e.distance, toEndzone(e, abbrOf), period, clockNow, {},
         { down_text: e.downDistanceText || "" });
     } else {  // nothing usable yet, e.g. right before the opening kickoff
       now = situation(homeId, 1, 10, KICKOFF_YARDLINE, Math.max(period, 1), clockNow, {}, { down_text: "Kickoff" });

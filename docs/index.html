@@ -125,6 +125,25 @@
   .seg button.on { background: var(--ink); color: var(--card); font-weight: 650; }
   .linkbtn { border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; padding: 4px 0; }
 
+  /* 4th-down helper */
+  .fourth .sub { font-size: 13px; color: var(--muted); margin: -4px 0 10px; }
+  .opt { padding: 8px 0; border-top: 1px solid var(--line); }
+  .opt:first-of-type { border-top: 0; }
+  .opt .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .opt .name { font-weight: 650; }
+  .opt .why { font-size: 12.5px; color: var(--muted); }
+  .opt .wp { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .opt .bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 5px; overflow: hidden; }
+  .opt .bar div { height: 100%; border-radius: 3px; background: var(--muted); }
+  .opt.best .bar div { background: var(--good); }
+  .verdict { font-size: 13px; margin-top: 8px; }
+  .call { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .call b { color: var(--ink); font-weight: 650; }
+
+  /* mini charts on the games list */
+  .spark { height: 52px; margin-top: 8px; }
+  .spark svg { display: block; width: 100%; height: 52px; }
+
   /* game summary */
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
   .stat .k { font-size: 12px; color: var(--muted); }
@@ -153,6 +172,7 @@
 
 <script type="module">
 import { loadGames, loadGame } from "./js/espn.js";
+import { addFourthDowns } from "./js/fourth.js";
 
 const $app = document.getElementById("app");
 const $status = document.getElementById("status");
@@ -245,6 +265,39 @@ async function showList() {
   $app.replaceChildren(nav, data.games.length ? grid : el("p", { class: "empty" }, "No games this week."),
     el("p", { class: "note" }, "Pregame percentages come from the betting line alone. Tap a game for the full chart."));
   schedule(showList, data.games.some(g => g.state === "in") ? 20000 : 120000);
+  fillSparks(data.games.filter(g => g.state === "post" && !sparkCache.has(g.id)));
+}
+
+// Finished games never change, so each one's chart is loaded once and kept.
+const sparkCache = new Map();
+async function fillSparks(games) {
+  for (const g of games) {
+    if (view !== "list") return;
+    try {
+      const full = await loadGame(g.id);
+      sparkCache.set(g.id, full.points.map(p => [p.minute, p.wp_home]));
+    } catch (e) { continue; }
+    const box = $app.querySelector(`.spark[data-id="${g.id}"]`);
+    if (box) box.replaceChildren(spark(sparkCache.get(g.id), teamColors(g.home, g.away)));
+  }
+}
+
+function spark(pts, col) {
+  const W = 300, H = 52, xmax = Math.max(60, ...pts.map(p => p[0]));
+  const X = m => (m / xmax) * W, Y = p => 2 + (1 - p) * (H - 4);
+  const id = "k" + Math.random().toString(36).slice(2, 8);
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", role: "img", "aria-label": "Win probability over the game" });
+  const defs = s("defs");
+  const ca = s("clipPath", { id: id + "a" }); ca.append(s("rect", { x: 0, y: 0, width: W, height: Y(0.5) }));
+  const cb = s("clipPath", { id: id + "b" }); cb.append(s("rect", { x: 0, y: Y(0.5), width: W, height: H }));
+  defs.append(ca, cb); svg.append(defs);
+  const line = pts.map(([m, p], i) => `${i ? "L" : "M"}${X(m).toFixed(1)},${Y(p).toFixed(1)}`).join("");
+  const area = `${line}L${X(pts[pts.length - 1][0]).toFixed(1)},${Y(0.5)}L${X(pts[0][0]).toFixed(1)},${Y(0.5)}Z`;
+  svg.append(s("path", { d: area, fill: col.home, opacity: .3, "clip-path": `url(#${id}a)` }));
+  svg.append(s("path", { d: area, fill: col.away, opacity: .3, "clip-path": `url(#${id}b)` }));
+  svg.append(s("line", { x1: 0, x2: W, y1: Y(0.5), y2: Y(0.5), stroke: "var(--line)", "stroke-width": 1, "vector-effect": "non-scaling-stroke" }));
+  svg.append(s("path", { d: line, fill: "none", stroke: "var(--ink)", "stroke-width": 1.4, "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke" }));
+  return svg;
 }
 
 function gameCard(g) {
@@ -266,7 +319,10 @@ function gameCard(g) {
     el("span", {}, g.state === "in" ? el("span", { class: "badge" }, "LIVE") : null, when,
       g.state === "in" && g.down_text ? el("span", { class: "muted" }, ` · ${g.down_text}`) : null),
     el("span", { class: "muted" }, g.state !== "post" && lead ? `${lead.abbr} ${pct(Math.max(wp, 1 - wp))}` : ""));
-  const bar = wp === null || g.state === "post" ? null : el("div", { class: "wpbar", title: "Win probability" },
+  if (g.state === "post") return el("a", { class: "card", href: `#/game/${g.id}` },
+    row(g.away, "away"), row(g.home, "home"), foot,
+    el("div", { class: "spark", "data-id": g.id }, sparkCache.has(g.id) ? spark(sparkCache.get(g.id), col) : null));
+  const bar = wp === null ? null : el("div", { class: "wpbar", title: "Win probability" },
     el("div", { style: `width:${(1 - wp) * 100}%;background:${col.away}` }),
     el("div", { style: `width:${wp * 100}%;background:${col.home}` }));
   return el("a", { class: "card" + (g.state === "in" ? " live" : ""), href: `#/game/${g.id}` },
@@ -274,17 +330,17 @@ function gameCard(g) {
 }
 
 // ---------- single game ----------
-let showEspn = true, showAll = false, swingsOpen = false, keyOnly = false, lastGame = null, cursor = null;
+let showEspn = true, showAll = false, keyOnly = false, lastGame = null, cursor = null;
+const folds = { swings: false, summary: false };  // collapsible panels: closed each time a game is opened
 let pickedId = null, chartShow = null, boardObserver = null;
 try { showEspn = localStorage.getItem("showEspn") !== "0"; } catch (e) {}
-try { swingsOpen = localStorage.getItem("swingsOpen") === "1"; } catch (e) {}
 try { keyOnly = localStorage.getItem("keyOnly") === "1"; } catch (e) {}
 let excitement = null;
 fetch("excitement.json").then(r => r.ok ? r.json() : null).then(x => { excitement = x; if (lastGame) renderGame(lastGame); }, () => {});
 
 async function showGame(id) {
   view = "game:" + id;
-  const g = await attempt(() => loadGame(id));
+  const g = await attempt(() => loadGame(id).then(addFourthDowns));
   if (view !== "game:" + id) return;
   if (!g) { if (!lastGame) $app.replaceChildren(el("p", { class: "empty" }, "Couldn't load this game.")); schedule(() => showGame(id), 10000); return; }
   lastGame = g;
@@ -334,6 +390,7 @@ function renderGame(g) {
     el("div", { class: "teams" }, teamBlock(g.away, "away"), mid, teamBlock(g.home, "home")), hero);
 
   const nodes = [el("a", { class: "back", href: "#/" }, "‹ All games"), board];
+  if (g.state === "in" && g.now?.fourth) nodes.push(fourthPanel(g, col, g.now));
   if (g.points.length) {
     const readout = el("div", { class: "readout" });
     const chartBox = el("div", {});
@@ -356,14 +413,9 @@ function renderGame(g) {
     if (swings.length) {
       // Collapsed by default so the chart and play by play sit together; the top swing peeks out
       const top = swings[0], topCol = top.swing >= 0 ? col.home : col.away;
-      colA.append(el("details", { class: "panel", ...(swingsOpen ? { open: "" } : {}), ontoggle: e => {
-        swingsOpen = e.target.open; try { localStorage.setItem("swingsOpen", swingsOpen ? "1" : "0"); } catch (err) {}
-      } },
-        el("summary", {}, el("h2", {}, "Biggest swings"),
-          el("span", { class: "peek" }, when(top),
-            el("span", { class: "chip", style: `background:${topCol};color:${onColor(topCol)}` },
-              `${(top.swing >= 0 ? g.home : g.away).abbr} +${Math.round(Math.abs(top.swing) * 100)}`)),
-          el("span", { class: "caret" }, "›")),
+      colA.append(fold("swings", "Biggest swings", [when(top),
+        el("span", { class: "chip", style: `background:${topCol};color:${onColor(topCol)}` },
+          `${(top.swing >= 0 ? g.home : g.away).abbr} +${Math.round(Math.abs(top.swing) * 100)}`)],
         playList(swings, g, col, tags)));
     }
 
@@ -387,6 +439,13 @@ function renderGame(g) {
   $app.className = "wrap gameview"; document.body.classList.add("gameview");
   $app.replaceChildren(...nodes);
   renderMini(g, col, board);
+}
+
+// A panel that folds down to one row; `peek` is what shows while it's closed.
+function fold(key, title, peek, ...body) {
+  return el("details", { class: "panel", ...(folds[key] ? { open: "" } : {}), ontoggle: e => { folds[key] = e.target.open; } },
+    el("summary", {}, el("h2", {}, title), el("span", { class: "peek" }, peek), el("span", { class: "caret" }, "›")),
+    ...body);
 }
 
 const when = p => p.period ? `${p.period > 4 ? "OT" : "Q" + p.period} ${p.clock}` : "";
@@ -417,7 +476,7 @@ function playList(points, g, col, tags) {
     const cls = ["tap", t.length ? "key" : "", p.play_id === pickedId ? "picked" : ""].filter(Boolean).join(" ");
     return el("li", { class: cls, "data-play": p.play_id, role: "button", tabindex: "0", onclick: () => pick(p) }, chip, el("div", {},
       el("div", { class: "meta" }, [when(p), p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
-      el("div", { class: "txt" }, t.map(([label, c]) => el("span", { class: "tag " + c }, label)), p.text || "")));
+      el("div", { class: "txt" }, t.map(([label, c]) => el("span", { class: "tag " + c }, label)), p.text || ""), callLine(p)));
   }));
 }
 
@@ -465,11 +524,53 @@ function summaryPanel(g, col) {
     beat = `${done ? "More" : "Already more"} than ${share}% of ${excitement.seasons[0]}–${String(excitement.seasons[1]).slice(2)} games`;
   }
   stats.push(["Excitement", moved.toFixed(1), beat]);
-  return el("section", { class: "panel" }, el("h2", {}, done ? "Game summary" : "So far"),
+  const calls = g.points.filter(p => p.fourth?.did && !closeCall(p.fourth));  // toss-ups don't count either way
+  if (calls.length) {
+    const tally = t => { const c = calls.filter(p => p.posteam === t.id); return c.length ? `${t.abbr} ${c.filter(p => p.fourth.did === p.fourth.best).length}/${c.length}` : null; };
+    stats.push(["4th-down calls", [tally(g.away), tally(g.home)].filter(Boolean).join(" · "), "matched the model's clear picks"]);
+  }
+  return fold("summary", done ? "Game summary" : "So far", `Excitement ${moved.toFixed(1)}`,
     el("div", { class: "stats" }, stats.map(([k, v, d]) => el("div", { class: "stat" },
       el("div", { class: "k" }, k), el("div", { class: "v" }, v), d ? el("div", { class: "d" }, d) : null))),
     el("p", { class: "muted small", style: "margin:10px 0 0" },
       "Excitement = how far the win probability line travels, added up play by play (a full swing from 0% to 100% counts 1)."));
+}
+
+// ---------- 4th downs ----------
+const SHORT = { go: "Go for it", fg: "Field goal", punt: "Punt" };
+const DID = { go: "went for it", fg: "kicked the field goal", punt: "punted" };
+const pts1 = x => `${(x * 100).toFixed(1)} pts`;
+const closeCall = f => f.margin !== null && f.margin < 0.01;
+
+function fourthPanel(g, col, p) {
+  const team = p.posteam === g.home.id ? g.home : g.away;
+  const f = p.fourth;
+  const verdict = f.margin === null ? `${SHORT[f.best]} is the only real option here.`
+    : closeCall(f) ? "Close call: the options are within 1 point of win probability."
+    : `${SHORT[f.best]} is better by ${pts1(f.margin)} of win probability.`;
+  return el("section", { class: "panel fourth" },
+    el("h2", {}, `4th down: what should ${team.abbr} do?`),
+    el("div", { class: "sub" }, p.down_text),
+    f.options.map(o => el("div", { class: "opt" + (o.key === f.best ? " best" : "") },
+      el("div", { class: "top" },
+        el("div", {}, el("div", { class: "name" }, o.label, o.key === f.best ? el("span", { class: "tag good", style: "margin-left:6px" }, "Best") : null),
+          el("div", { class: "why" }, o.chance === null ? o.chanceText : `${pct(o.chance)} ${o.chanceText}`)),
+        el("div", { class: "wp" }, pct(o.wp))),
+      el("div", { class: "bar" }, el("div", { style: `width:${o.wp * 100}%` })))),
+    el("div", { class: "verdict" }, verdict),
+    el("p", { class: "muted small", style: "margin:6px 0 0" },
+      `Percentages are ${team.abbr}'s chance to win after each choice. Odds are for an average offense, kicker and punter (2018–25).`));
+}
+
+// one line for a 4th-down play: the model's pick, and whether the team agreed
+function callLine(p) {
+  const f = p.fourth;
+  if (!f) return null;
+  const close = closeCall(f);
+  const mark = !f.did ? "" : f.did === f.best ? " ✓" : close ? " (fine either way)" : " ✗";
+  return el("div", { class: "call" }, "Model's pick: ", el("b", {}, SHORT[f.best]),
+    f.margin === null ? "" : close ? " (close call)" : ` (by ${pts1(f.margin)})`,
+    f.did ? ` · they ${DID[f.did]}${mark}` : "");
 }
 
 // The compact score bar in the header, shown once the big scoreboard scrolls off screen.
@@ -556,6 +657,7 @@ function drawChart(box, readout, g, col) {
       el("div", { class: "meta" }, [when(p), p.down_text, `${g.away.abbr} ${p.away_score}–${p.home_score} ${g.home.abbr}`].filter(Boolean).join(" · ")),
       el("div", {}, el("strong", { style: `color:${p.wp_home >= 0.5 ? col.home : col.away}` }, `${lead.abbr} ${pct(Math.max(p.wp_home, 1 - p.wp_home))}`), el("span", { class: "muted" }, espn)),
       el("div", {}, p.text === "Now" ? "Current situation" : p.text || ""),
+      callLine(p),
       pickedId && p.play_id === pickedId ? el("button", { class: "linkbtn", onclick: () => { unpick(); show(latest, false); } }, "Back to now") : null,
     ].filter(Boolean));
   };
@@ -575,7 +677,7 @@ function drawChart(box, readout, g, col) {
 
 // ---------- routing ----------
 function route() {
-  clearTimeout(timer); showAll = false; lastGame = null; pickedId = null; chartShow = null; window.scrollTo(0, 0);
+  clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = false; pickedId = null; chartShow = null; window.scrollTo(0, 0);
   hideMini(); $app.className = "wrap"; document.body.classList.remove("gameview");
   const m = location.hash.match(/^#\/game\/(\d+)/);
   if (m) { $app.replaceChildren(el("p", { class: "empty" }, "Loading game…")); showGame(m[1]); }
