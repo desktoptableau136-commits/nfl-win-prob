@@ -1,0 +1,23 @@
+{
+  "features": [
+    "score_differential",
+    "diff_time_ratio",
+    "posteam_spread",
+    "spread_time",
+    "game_seconds_remaining",
+    "half_seconds_remaining",
+    "down",
+    "ydstogo",
+    "yardline_100",
+    "posteam_timeouts_remaining",
+    "defteam_timeouts_remaining",
+    "home",
+    "receive_2h_ko",
+    "is_ot"
+  ],
+  "seasons": [
+    2006,
+    2025
+  ],
+  "n_trees": 1503
+}
