@@ -9,3 +9,4 @@ xgboost
 matplotlib
 jupyterlab
 ipykernel
+playwright

@@ -65,6 +65,14 @@ after the play, so each snap is compared with ESPN's latest number before it:
 Ours was closer in 188 of the 284 games; its edge is mostly early in games. The same table
 is in the dashboard's "About the model" section at the bottom of the games list.
 
+To redo it (e.g. after the 2026 season), run the command below. It takes about 10 minutes,
+then paste the printed table into `VS_ESPN` in `docs/index.html` and into this README.
+
+```powershell
+.venv\Scripts\python -m playwright install chromium   # once
+.venv\Scripts\python -m live.compare_espn 2026
+```
+
 ## Retraining the model
 
 ```powershell
@@ -90,6 +98,7 @@ Then refresh the two lookup files the page uses:
 | `live/export_site_model.py` | Converts the XGBoost model into compact `docs/model.json` |
 | `live/excitement.py` | Builds `docs/excitement.json`: how much WP moved in 2021–25 games, for the game summary |
 | `live/fourth.py` | Builds `docs/fourth.json`: conversion, field goal and punt odds for the 4th-down helper |
+| `live/compare_espn.py` | Replays a whole season through the page with a model that never saw it, and scores it against ESPN |
 | `live/server.py` | Tiny local web server for `docs/` (home Wi-Fi use) |
 | `docs/index.html` | The dashboard page (layout, chart, lists) |
 | `docs/js/espn.js` | Reads ESPN's feed and rebuilds the situation before every play |
