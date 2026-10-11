@@ -480,7 +480,7 @@ function gameCard(g) {
   const foot = el("div", { class: "cardfoot small" },
     el("span", {}, g.state === "in" ? el("span", { class: "badge" }, "LIVE") : null, when,
       g.state === "in" && g.down_text ? el("span", { class: "muted" }, ` · ${g.down_text}`) : null,
-      g.state !== "post" && g.broadcasts?.tv.length ? el("span", { class: "muted" }, ` · ${g.broadcasts.tv.slice(0, 2).map(tvName).join("/")}`) : null),
+      g.state !== "post" && g.broadcasts?.tv.length ? el("span", { class: "muted" }, ` · ${g.broadcasts.tv.slice(0, 2).map(tvLabel).join(" / ")}`) : null),
     el("span", { class: "muted" }, g.state !== "post" && lead ? `${lead.abbr} ${pct(Math.max(wp, 1 - wp))}` : ""));
   if (g.state === "post") return el("a", { class: "card", href: `#/game/${g.id}` },
     row(g.away, "away"), row(g.home, "home"), foot,
@@ -611,38 +611,55 @@ function renderGame(g) {
 }
 
 // ---------- where to watch or listen ----------
+// Set up for one viewer: Spectrum in Roswell, GA (30075), so the locals are Atlanta's stations.
 const TV_NAMES = { "NFL Net": "NFL Network", FOX: "Fox" };
 const tvName = n => TV_NAMES[n] || n;
-// Where each network streams. Live-TV services (YouTube TV, Hulu + Live TV, Fubo…) carry the TV channels too.
-const STREAMS = { CBS: "Paramount+", Fox: "Fox One", NBC: "Peacock", ESPN: "the ESPN app", ESPN2: "the ESPN app", ABC: "the ESPN app" };
+const SPECTRUM = { ABC: 2, Fox: 5, NBC: 6, CBS: 9, ESPN: 250, ESPN2: 251, "NFL Network": 254 };
+const REDZONE = 255;
+const tvLabel = n => SPECTRUM[tvName(n)] ? `${tvName(n)} ${SPECTRUM[tvName(n)]}` : tvName(n);
+// Each team's flagship radio station(s) for its home market (2026 season; Wikipedia and team sites)
+const RADIO = {
+  ARI: ["98.7 FM / 620 AM KTAR", "Phoenix"], ATL: ["92.9 FM The Game (WZGC)", "Atlanta"],
+  BAL: ["97.9 FM WIYY / 1090 AM WBAL", "Baltimore"], BUF: ["96.9 FM WGRF", "Buffalo"],
+  CAR: ["99.7 FM WRFX / 620 AM WDNC", "Charlotte / Raleigh"], CHI: ["1000 AM WMVP", "Chicago"],
+  CIN: ["102.7 FM WEBN / 1530 AM WCKY / 700 AM WLW", "Cincinnati"], CLE: ["92.3 FM WKRK / 98.5 FM WNCX / 850 AM WKNR", "Cleveland"],
+  DAL: ["105.3 FM / 1080 AM KRLD", "Dallas"], DEN: ["850 AM KOA", "Denver"], DET: ["97.1 FM WXYT", "Detroit"],
+  GB: ["95.7 FM WRIT", "Milwaukee"], HOU: ["100.3 FM KILT / 610 AM KIKK", "Houston"], IND: ["97.1 FM WLHK", "Indianapolis"],
+  JAX: ["1010 AM / 92.5 FM WJXL", "Jacksonville"], KC: ["106.5 FM WDAF", "Kansas City"], LV: ["92.3 FM KOMP / 1340 AM KRLV", "Las Vegas"],
+  LAC: ["640 AM KFI", "Los Angeles"], LAR: ["710 AM KSPN / 93.1 FM KCBS", "Los Angeles"], MIA: ["940 AM WINZ / 105.9 FM WBGG", "Miami"],
+  MIN: ["100.3 FM KFAN", "Minneapolis"], NE: ["98.5 FM WBZ", "Boston"], NO: ["870 AM / 105.3 FM WWL", "New Orleans"],
+  NYG: ["660 AM / 101.9 FM WFAN", "New York"], NYJ: ["104.3 FM WAXQ", "New York"], PHI: ["94.1 FM WIP", "Philadelphia"],
+  PIT: ["102.5 FM WDVE / 970 AM WBGG", "Pittsburgh"], SF: ["680 AM / 104.5 FM KNBR", "San Francisco"],
+  SEA: ["710 AM / 97.3 FM KIRO", "Seattle"], TB: ["97.9 FM WXTB", "Tampa"], TEN: ["104.5 FM WGFX", "Nashville"],
+  WSH: ["100.3 FM WBIG", "Washington"],
+};
+// This week's SiriusXM channels, refreshed daily by live/sirius.py (GitHub Actions)
+let sirius = null;
+fetch("sirius.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(x => { sirius = x; if (lastGame) renderGame(lastGame); }, () => {});
+const siriusFor = g => (sirius?.games || []).find(x => x.away === g.away.abbr && x.home === g.home.abbr &&
+  (!g.date || Math.abs(new Date(x.date + "T12:00") - new Date(g.date)) < 3 * 86400000));
 
 function tunePanel(g) {
-  const { tv = [], radio = [] } = g.broadcasts || {};
-  const names = tv.map(tvName);
+  const tv = (g.broadcasts?.tv || []).map(tvName);
   const et = g.date ? Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", hourCycle: "h23" })
     .formatToParts(new Date(g.date)).map(x => [x.type, x.value])) : {};
-  const sundayAfternoon = et.weekday === "Sun" && Number(et.hour) < 19;  // kickoff before 7pm Eastern
-  const primeTime = g.postseason || (g.date && !sundayAfternoon);
-  const streams = [...new Set(names.map(n => STREAMS[n]).filter(Boolean))];
-  const watch = [
-    names.length ? el("li", {}, el("b", {}, names.join(" / ")),
-      streams.length ? ` (streams on ${streams.join(" and ")})` : "") : el("li", {}, "TV channel not announced yet"),
-    sundayAfternoon && names.some(n => n === "CBS" || n === "Fox") ? el("li", {},
-      "Sunday afternoon CBS and Fox games are regional, so your local station may show a different game. ",
-      "NFL Sunday Ticket (YouTube) has every out-of-market Sunday afternoon game.") : null,
-    el("li", {}, "NFL+ streams local and prime-time games live on phones and tablets."),
-  ];
-  const listen = [
-    radio.length ? el("li", {}, el("b", {}, radio.join(" / "))) : null,
-    el("li", {}, `${g.away.name} and ${g.home.name} radio: each team's local AM/FM network and team app`),
-    primeTime ? el("li", {}, "Westwood One national radio") : null,
-    el("li", {}, "SiriusXM and NFL+ carry live audio of every game"),
-  ];
+  const sundayAfternoon = et.weekday === "Sun" && Number(et.hour) < 19;  // kickoff before 7pm Eastern: regional CBS/Fox, RedZone
+  const regional = n => sundayAfternoon && (n === "CBS" || n === "Fox");
+  const row = (label, value, note) => el("li", {}, el("span", { class: "muted" }, label), el("b", {}, value), note ? el("span", { class: "muted" }, ` ${note}`) : null);
+  const watch = tv.length ? tv.map(n => SPECTRUM[n]
+    ? row(`${n}: `, `Spectrum ${SPECTRUM[n]}`, regional(n) ? "(if it's the Atlanta-area game)" : "")
+    : row("", n)) : [el("li", { class: "muted" }, "TV channel not announced yet")];
+  if (sundayAfternoon && Number(et.hour) >= 13) watch.push(row("NFL RedZone: ", `Spectrum ${REDZONE}`));  // 1pm and 4pm windows only
+  const sx = siriusFor(g);
+  const listen = [g.away, g.home].map(t => RADIO[t.abbr] && row(`${t.abbr}: `, RADIO[t.abbr][0], `(${RADIO[t.abbr][1]})`));
+  if (sx) listen.push(el("li", {}, el("span", { class: "muted" }, "SiriusXM: "), el("b", {},
+    [[g.away.abbr, sx.away_ch], [g.home.abbr, sx.home_ch], ["National", sx.national], ["Español", sx.spanish]]
+      .filter(([, ch]) => ch).map(([who, ch]) => `${who} ${ch}`).join(" · "))));
   const body = [el("div", { class: "small muted" }, "Watch"), el("ul", { class: "tune" }, ...watch),
     el("div", { class: "small muted" }, "Listen"), el("ul", { class: "tune" }, ...listen)];
   // Before kickoff it's the main question, so show it open; during the game it folds away under the live panels
   if (g.state === "pre") return el("section", { class: "panel" }, el("h2", {}, "Watch or listen"), ...body);
-  return fold("tune", "Watch or listen", names.length ? names.join(" / ") : "", ...body);
+  return fold("tune", "Watch or listen", tv.map(n => tvLabel(n)).join(" / "), ...body);
 }
 
 // A panel that folds down to one row; `peek` is what shows while it's closed.

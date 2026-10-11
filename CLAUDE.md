@@ -16,6 +16,7 @@ the browser and runs the exported XGBoost trees in JS, so no server does any wor
 .venv\Scripts\python -m live.two_point     # docs/twopoint.json  (kick-or-go-for-2; --chart just reprints the chart)
 .venv\Scripts\python -m live.watch         # docs/watch.json     ("Watch now": 5-minute WP movement table + stakes nudge)
 .venv\Scripts\python -m live.excitement    # docs/excitement.json
+.venv\Scripts\python -m live.sirius        # docs/sirius.json (this week's SiriusXM channels; GitHub Actions runs it daily)
 .venv\Scripts\python -m live.compare_espn 2025   # ~10 min season replay vs ESPN; prints VS_ESPN and CALIBRATION tables
 .venv\Scripts\python -m live.stamp         # REQUIRED before pushing any change to docs/js (see below)
 ```
