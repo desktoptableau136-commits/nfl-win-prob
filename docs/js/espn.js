@@ -7,7 +7,7 @@
 // - a play's start/end hold down, distance, yardsToEndzone and the team with the ball
 // - odds `spread` is the HOME team's line: -3.5 means home favored by 3.5
 
-import { predict } from "./model.js?v=c92a5518";
+import { predict } from "./model.js?v=69622991";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 const SUMMARY_URL = id => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`;
@@ -66,6 +66,19 @@ function teamInfo(c) {
     color: "#" + (t.color || "666666"), alt_color: "#" + (t.alternateColor || "999999"),
     logo: t.logo || (t.logos || [{}])[0].href, score: Number(c.score || 0),
   };
+}
+/** Where a game is on: { tv: ["ESPN", "ABC"], radio: [...] }. ESPN lists TV and streaming outlets
+ *  (scoreboard: `broadcasts[].names`; summary: `media.shortName`) and only rarely radio. */
+function broadcastsOf(...lists) {
+  const out = { tv: [], radio: [] };
+  for (const b of lists.flat()) {
+    const radio = /radio/i.test(b?.type?.shortName || "");
+    for (const name of b?.names || [b?.media?.shortName || b?.station]) {
+      const list = radio ? out.radio : out.tv;
+      if (name && !list.includes(name)) list.push(name);
+    }
+  }
+  return out;
 }
 const valid = pos => !!(pos && pos.team && pos.down >= 1 && pos.down <= 4
   && pos.yardsToEndzone >= 1 && pos.yardsToEndzone <= 99 && (pos.distance || 0) >= 1);
@@ -217,7 +230,8 @@ function parseGame(summary, liveSituation = null) {
   }
 
   return { id: gameId, state, detail: status.type.shortDetail || "", period, home: teams.home, away: teams.away,
-    neutral: !!comp.neutralSite, spread_home: spreadHome, postseason: isPostseason, situations, now };
+    neutral: !!comp.neutralSite, spread_home: spreadHome, postseason: isPostseason, situations, now,
+    date: comp.date, broadcasts: broadcastsOf(comp.broadcasts || [], summary.broadcasts || []) };
 }
 
 // ---------- adding win probability ----------
@@ -280,7 +294,8 @@ export async function loadGames({ week, seasontype, year } = {}) {
     const neutral = !!comp.neutralSite;
     const g = { id: event.id, state, detail: event.status.type.shortDetail || "", date: event.date,
       home: teams.home, away: teams.away, neutral, possession: comp.situation?.possession,
-      down_text: comp.situation?.shortDownDistanceText, spread_home: homeSpread(comp.odds) };
+      down_text: comp.situation?.shortDownDistanceText, spread_home: homeSpread(comp.odds),
+      broadcasts: broadcastsOf(comp.geoBroadcasts || [], comp.broadcasts || []) };
     if (state === "pre") g.wp_home = await pregameWp(g.spread_home, neutral);
     else if (state === "post") g.wp_home = finalWp(g);
     else await loadGame(event.id, comp.situation).then(x => { g.wp_home = x.wp_home; g.now = x.now; }, () => { g.wp_home = null; });

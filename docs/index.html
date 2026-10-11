@@ -123,6 +123,9 @@
     border-radius: 4px; padding: 1px 5px; margin: 0 5px 2px 0; color: #fff; background: var(--muted); vertical-align: 1px; }
   .tag.good { background: var(--good); }
   .tag.bad { background: var(--accent); }
+  ul.tune { margin: 4px 0 10px; padding-left: 18px; font-size: 13.5px; }
+  ul.tune:last-child { margin-bottom: 0; }
+  ul.tune li { margin: 3px 0; }
   .panelhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
   .panelhead h2 { margin: 0; }
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
@@ -234,12 +237,12 @@
 <main class="wrap" id="app"><p class="empty">Loading…</p></main>
 
 <script type="module">
-import { loadGames, loadGame } from "./js/espn.js?v=c92a5518";
-import { addFourthDowns } from "./js/fourth.js?v=c92a5518";
-import { addLeverage } from "./js/leverage.js?v=c92a5518";
-import { addConversions } from "./js/twopoint.js?v=c92a5518";
-import { addWatch } from "./js/watch.js?v=c92a5518";
-import { seasonReport } from "./js/coaches.js?v=c92a5518";
+import { loadGames, loadGame } from "./js/espn.js?v=69622991";
+import { addFourthDowns } from "./js/fourth.js?v=69622991";
+import { addLeverage } from "./js/leverage.js?v=69622991";
+import { addConversions } from "./js/twopoint.js?v=69622991";
+import { addWatch } from "./js/watch.js?v=69622991";
+import { seasonReport } from "./js/coaches.js?v=69622991";
 
 const $app = document.getElementById("app");
 const $status = document.getElementById("status");
@@ -476,7 +479,8 @@ function gameCard(g) {
   const lead = wp === null ? null : wp >= 0.5 ? g.home : g.away;
   const foot = el("div", { class: "cardfoot small" },
     el("span", {}, g.state === "in" ? el("span", { class: "badge" }, "LIVE") : null, when,
-      g.state === "in" && g.down_text ? el("span", { class: "muted" }, ` · ${g.down_text}`) : null),
+      g.state === "in" && g.down_text ? el("span", { class: "muted" }, ` · ${g.down_text}`) : null,
+      g.state !== "post" && g.broadcasts?.tv.length ? el("span", { class: "muted" }, ` · ${g.broadcasts.tv.slice(0, 2).map(tvName).join("/")}`) : null),
     el("span", { class: "muted" }, g.state !== "post" && lead ? `${lead.abbr} ${pct(Math.max(wp, 1 - wp))}` : ""));
   if (g.state === "post") return el("a", { class: "card", href: `#/game/${g.id}` },
     row(g.away, "away"), row(g.home, "home"), foot,
@@ -493,7 +497,7 @@ function gameCard(g) {
 
 // ---------- single game ----------
 let showEspn = true, showAll = false, keyOnly = false, lastGame = null, cursor = null;
-const folds = { swings: false, summary: false, about: false };  // collapsible panels: closed each time a page is opened
+const folds = { swings: false, summary: false, about: false, tune: false };  // collapsible panels: closed each time a page is opened
 let pickedId = null, chartShow = null, boardObserver = null;
 try { showEspn = localStorage.getItem("showEspn") !== "0"; } catch (e) {}
 try { keyOnly = localStorage.getItem("keyOnly") === "1"; } catch (e) {}
@@ -555,6 +559,7 @@ function renderGame(g) {
   if (g.state === "in" && g.now?.pat) nodes.push(patPanel(g, g.now));
   else if (g.state === "in" && g.now?.fourth) nodes.push(fourthPanel(g, col, g.now));
   else if (g.state === "in" && g.now?.stakes && !/kickoff/i.test(g.now.down_text)) nodes.push(stakesPanel(g, col, g.now));
+  if (g.state !== "post") nodes.push(tunePanel(g));
   if (g.points.length) {
     const readout = el("div", { class: "readout" });
     const chartBox = el("div", {});
@@ -603,6 +608,41 @@ function renderGame(g) {
   $app.className = "wrap gameview"; document.body.classList.add("gameview");
   $app.replaceChildren(...nodes);
   renderMini(g, col, board);
+}
+
+// ---------- where to watch or listen ----------
+const TV_NAMES = { "NFL Net": "NFL Network", FOX: "Fox" };
+const tvName = n => TV_NAMES[n] || n;
+// Where each network streams. Live-TV services (YouTube TV, Hulu + Live TV, Fubo…) carry the TV channels too.
+const STREAMS = { CBS: "Paramount+", Fox: "Fox One", NBC: "Peacock", ESPN: "the ESPN app", ESPN2: "the ESPN app", ABC: "the ESPN app" };
+
+function tunePanel(g) {
+  const { tv = [], radio = [] } = g.broadcasts || {};
+  const names = tv.map(tvName);
+  const et = g.date ? Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", hourCycle: "h23" })
+    .formatToParts(new Date(g.date)).map(x => [x.type, x.value])) : {};
+  const sundayAfternoon = et.weekday === "Sun" && Number(et.hour) < 19;  // kickoff before 7pm Eastern
+  const primeTime = g.postseason || (g.date && !sundayAfternoon);
+  const streams = [...new Set(names.map(n => STREAMS[n]).filter(Boolean))];
+  const watch = [
+    names.length ? el("li", {}, el("b", {}, names.join(" / ")),
+      streams.length ? ` (streams on ${streams.join(" and ")})` : "") : el("li", {}, "TV channel not announced yet"),
+    sundayAfternoon && names.some(n => n === "CBS" || n === "Fox") ? el("li", {},
+      "Sunday afternoon CBS and Fox games are regional, so your local station may show a different game. ",
+      "NFL Sunday Ticket (YouTube) has every out-of-market Sunday afternoon game.") : null,
+    el("li", {}, "NFL+ streams local and prime-time games live on phones and tablets."),
+  ];
+  const listen = [
+    radio.length ? el("li", {}, el("b", {}, radio.join(" / "))) : null,
+    el("li", {}, `${g.away.name} and ${g.home.name} radio: each team's local AM/FM network and team app`),
+    primeTime ? el("li", {}, "Westwood One national radio") : null,
+    el("li", {}, "SiriusXM and NFL+ carry live audio of every game"),
+  ];
+  const body = [el("div", { class: "small muted" }, "Watch"), el("ul", { class: "tune" }, ...watch),
+    el("div", { class: "small muted" }, "Listen"), el("ul", { class: "tune" }, ...listen)];
+  // Before kickoff it's the main question, so show it open; during the game it folds away under the live panels
+  if (g.state === "pre") return el("section", { class: "panel" }, el("h2", {}, "Watch or listen"), ...body);
+  return fold("tune", "Watch or listen", names.length ? names.join(" / ") : "", ...body);
 }
 
 // A panel that folds down to one row; `peek` is what shows while it's closed.
@@ -952,7 +992,7 @@ function renderCoaches(r, done, total, failed = 0) {
 
 // ---------- routing ----------
 function route() {
-  clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = folds.about = false; pickedId = null; chartShow = null; window.scrollTo(0, 0);
+  clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = folds.about = folds.tune = false; pickedId = null; chartShow = null; window.scrollTo(0, 0);
   hideMini(); $app.className = "wrap"; document.body.classList.remove("gameview");
   const m = location.hash.match(/^#\/game\/(\d+)/);
   if (m) { $app.replaceChildren(el("p", { class: "empty" }, "Loading game…")); showGame(m[1]); }
