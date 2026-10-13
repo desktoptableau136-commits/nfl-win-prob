@@ -274,15 +274,45 @@ function rgbDist(a, b) {
   const p = h => h.replace("#", "").match(/../g).map(x => parseInt(x, 16));
   const [x, y] = [p(a), p(b)]; return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
 }
+function toHsl(hex) {
+  const [r, g, b] = hex.replace("#", "").match(/../g).map(x => parseInt(x, 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+function fromHsl(h, s, l) {
+  const f = n => { const k = (n + h / 30) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return "#" + [f(0), f(8), f(4)].map(v => Math.round(v * 255).toString(16).padStart(2, "0")).join("");
+}
+// a team color readable on bg: as is, or brightened (dark mode) / darkened (light mode) with the same hue,
+// so navy stays blue rather than flipping to a team's alternate. Black and grays can't be shifted usefully.
+function fit(c, bg) {
+  if (contrast(c, bg) >= 2.2) return c;
+  const [h, s, l] = toHsl(c);
+  if (s < 0.1) return null;
+  const step = lum(bg) > 0.5 ? -0.01 : 0.01;
+  for (let x = l; x >= 0 && x <= 1; x += step) {
+    const out = fromHsl(h, s, x);
+    if (contrast(out, bg) >= 2.6) return out;
+  }
+  return null;
+}
+// teams fans know by their alternate color (ESPN lists Denver navy and Cleveland brown first)
+const ALT_FIRST = new Set(["DEN", "CLE"]);
 // pick a team color that is visible on the current background, and distinct from the opponent
 function teamColors(home, away) {
   const bg = dark() ? "#181b21" : "#ffffff";
-  // main color if it's readable on this background, else the alternate, else neutral
-  const pick = t => [t.color, t.alt_color].find(c => contrast(c, bg) >= 2.2) || (dark() ? "#cfd3da" : "#3a3f47");
+  // main color (shifted if needed to be readable on this background), else the alternate, else neutral
+  const pick = t => {
+    const [first, second] = ALT_FIRST.has(t.abbr) ? [t.alt_color, t.color] : [t.color, t.alt_color];
+    return fit(first, bg) || fit(second, bg) || (dark() ? "#cfd3da" : "#3a3f47");
+  };
   const h = pick(home);
   let a = pick(away);
   if (rgbDist(h, a) < 90) {
-    const alt = [away.alt_color, away.color].find(c => c !== a && contrast(c, bg) >= 2.2 && rgbDist(h, c) >= 90);
+    const alt = [away.alt_color, away.color].map(c => fit(c, bg)).find(c => c && c !== a && rgbDist(h, c) >= 90);
     a = alt || (dark() ? "#cfd3da" : "#5b616b");
   }
   return { home: h, away: a };
