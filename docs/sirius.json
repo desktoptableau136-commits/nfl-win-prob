@@ -1,15 +1,6 @@
 {
- "updated": "2026-10-13T19:43Z",
+ "updated": "2026-10-16T17:09Z",
  "games": [
-  {
-   "date": "2026-10-15",
-   "away": "SEA",
-   "home": "DEN",
-   "away_ch": 193,
-   "home_ch": 192,
-   "national": 88,
-   "spanish": null
-  },
   {
    "date": "2026-10-18",
    "away": "HOU",
@@ -21,11 +12,11 @@
   },
   {
    "date": "2026-10-18",
-   "away": "CAR",
-   "home": "PHI",
-   "away_ch": 268,
-   "home_ch": 199,
-   "national": 180,
+   "away": "NO",
+   "home": "NYG",
+   "away_ch": 267,
+   "home_ch": 198,
+   "national": null,
    "spanish": null
   },
   {
@@ -34,24 +25,6 @@
    "home": "TB",
    "away_ch": 264,
    "home_ch": 195,
-   "national": null,
-   "spanish": null
-  },
-  {
-   "date": "2026-10-18",
-   "away": "TEN",
-   "home": "IND",
-   "away_ch": 265,
-   "home_ch": 196,
-   "national": null,
-   "spanish": null
-  },
-  {
-   "date": "2026-10-18",
-   "away": "BAL",
-   "home": "CLE",
-   "away_ch": 262,
-   "home_ch": 193,
    "national": null,
    "spanish": null
   },
@@ -66,6 +39,15 @@
   },
   {
    "date": "2026-10-18",
+   "away": "TEN",
+   "home": "IND",
+   "away_ch": 265,
+   "home_ch": 196,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-10-18",
    "away": "NYJ",
    "home": "NE",
    "away_ch": 266,
@@ -75,11 +57,20 @@
   },
   {
    "date": "2026-10-18",
-   "away": "NO",
-   "home": "NYG",
-   "away_ch": 267,
-   "home_ch": 198,
+   "away": "BAL",
+   "home": "CLE",
+   "away_ch": 262,
+   "home_ch": 193,
    "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-10-18",
+   "away": "CAR",
+   "home": "PHI",
+   "away_ch": 268,
+   "home_ch": 199,
+   "national": 180,
    "spanish": null
   },
   {
@@ -93,19 +84,19 @@
   },
   {
    "date": "2026-10-18",
-   "away": "LAC",
-   "home": "KC",
-   "away_ch": 264,
-   "home_ch": 200,
-   "national": null,
-   "spanish": null
-  },
-  {
-   "date": "2026-10-18",
    "away": "BUF",
    "home": "LV",
    "away_ch": 261,
    "home_ch": 192,
+   "national": 178,
+   "spanish": null
+  },
+  {
+   "date": "2026-10-18",
+   "away": "LAC",
+   "home": "KC",
+   "away_ch": 264,
+   "home_ch": 200,
    "national": null,
    "spanish": null
   },
