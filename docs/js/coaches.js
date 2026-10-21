@@ -1,9 +1,9 @@
 // Coach report card: every 4th down and every try after a touchdown this season, graded by the
 // same helpers the game page uses (fourth.js, twopoint.js), and added up by team.
 // Finished games never change, so each one is graded once and kept in this browser.
-import { loadGame, seasonGames } from "./espn.js?v=69622991";
-import { addFourthDowns } from "./fourth.js?v=69622991";
-import { addConversions } from "./twopoint.js?v=69622991";
+import { loadGame, seasonGames } from "./espn.js?v=90781bbb";
+import { addFourthDowns } from "./fourth.js?v=90781bbb";
+import { addConversions } from "./twopoint.js?v=90781bbb";
 
 const VERSION = new URL(import.meta.url).searchParams.get("v") || "dev";  // new scripts → grade again
 const STORE = "coach-calls";

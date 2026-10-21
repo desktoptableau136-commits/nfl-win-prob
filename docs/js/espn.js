@@ -7,7 +7,7 @@
 // - a play's start/end hold down, distance, yardsToEndzone and the team with the ball
 // - odds `spread` is the HOME team's line: -3.5 means home favored by 3.5
 
-import { predict } from "./model.js?v=69622991";
+import { predict } from "./model.js?v=90781bbb";
 
 const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 const SUMMARY_URL = id => `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${id}`;
@@ -102,6 +102,32 @@ function pregameStates(spreadHome) {
 }
 
 // ---------- parsing ----------
+/** The box score, keyed by "home"/"away": points by quarter, team stats by ESPN's stat name,
+ *  and each player category ({ name, title, labels, descriptions, rows: [{ name, photo, stats }], totals }).
+ *  Null before kickoff, when ESPN has no player stats yet. */
+function boxScore(summary, comp) {
+  const players = summary.boxscore?.players || [];
+  if (!players.length) return null;
+  const side = Object.fromEntries(comp.competitors.map(c => [String(c.team.id), c.homeAway]));
+  const box = {};
+  for (const c of comp.competitors)
+    box[c.homeAway] = { lines: (c.linescores || []).map(l => l.displayValue ?? String(l.value ?? "")), stats: {}, players: [] };
+  for (const t of summary.boxscore?.teams || []) {
+    const b = box[side[String(t.team.id)]];
+    if (b) for (const s of t.statistics || []) b.stats[s.name] ??= s.displayValue;
+  }
+  for (const t of players) {
+    const b = box[side[String(t.team.id)]];
+    if (!b) continue;
+    b.players = (t.statistics || []).map(c => ({
+      name: c.name, title: (c.text || c.name).replace(`${t.team.location} `, ""),
+      labels: c.labels || [], descriptions: c.descriptions || [], totals: c.totals || [],
+      rows: (c.athletes || []).map(a => ({ name: a.athlete?.displayName || "", photo: a.athlete?.headshot?.href || null, stats: a.stats || [] })),
+    }));
+  }
+  return box.home && box.away ? box : null;
+}
+
 /** Turns an ESPN summary into teams, status, and a list of pre-snap situations.
  *  Each situation has the model's raw fields (offense's view) plus display info. */
 function parseGame(summary, liveSituation = null) {
@@ -231,7 +257,7 @@ function parseGame(summary, liveSituation = null) {
 
   return { id: gameId, state, detail: status.type.shortDetail || "", period, home: teams.home, away: teams.away,
     neutral: !!comp.neutralSite, spread_home: spreadHome, postseason: isPostseason, situations, now,
-    date: comp.date, broadcasts: broadcastsOf(comp.broadcasts || [], summary.broadcasts || []) };
+    date: comp.date, broadcasts: broadcastsOf(comp.broadcasts || [], summary.broadcasts || []), box: boxScore(summary, comp) };
 }
 
 // ---------- adding win probability ----------

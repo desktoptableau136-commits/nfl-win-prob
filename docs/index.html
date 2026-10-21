@@ -201,6 +201,57 @@
   .stat .v { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.2; }
   .stat .d { font-size: 12.5px; color: var(--muted); }
 
+  /* box score */
+  .box table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .box th, .box td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  .box th { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  .box th:first-child, .box td:first-child { text-align: left; padding-left: 0; }
+  .box h3 { font-size: 13px; margin: 16px 0 4px; }
+  .box .tm { font-weight: 700; }
+  .box .tm img { width: 18px; height: 18px; object-fit: contain; vertical-align: -4px; margin-right: 5px; }
+  .box .lines td:last-child { font-weight: 750; }
+  .box .tstats td { width: 30%; font-weight: 650; }
+  .box .tstats td.k { width: 40%; text-align: center; font-weight: 400; color: var(--muted); font-size: 12.5px; white-space: normal; }
+  .box .tstats { margin-top: 22px; }
+  .box .tstats td { vertical-align: top; }
+  .box .sbar { position: relative; height: 6px; margin: 5px auto 1px; max-width: 220px; background: var(--line); border-radius: 3px; }
+  .box .sbar::after { content: ""; position: absolute; left: calc(50% - 1px); top: -2px; width: 2px; height: 10px; background: var(--muted); border-radius: 1px; }
+  .box .sbar i { position: absolute; top: 0; bottom: 0; min-width: 3px; }
+  .box .sbar i[style*="right"] { border-radius: 3px 0 0 3px; }
+  .box .sbar i[style*="left"] { border-radius: 0 3px 3px 0; }
+  .box .brow { display: flex; align-items: center; gap: 6px; max-width: 240px; margin: 5px auto 1px; }
+  .box .brow .sbar { flex: 1; margin: 0; }
+  .box .arr { flex: none; width: 0; height: 0; border: 5px solid transparent; }
+  .box .arr.away { border-right-width: 8px; border-left-width: 0; }
+  .box .arr.home { border-left-width: 8px; border-right-width: 0; }
+  .box .tstats td:last-child, .box .tstats th:last-child { text-align: right; }
+  .box .tstats th:first-child, .box .tstats td:first-child { text-align: left; }
+  .bplayers { container-type: inline-size; }
+  .bplayers { margin-top: 30px; }
+  .bseg { display: flex; width: min(100%, 300px); margin: 0 auto 4px; }
+  .bseg button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; font-size: 14px; }
+  .bseg button img { width: 24px; height: 24px; object-fit: contain; opacity: .45; }
+  .bseg button.on { background: var(--card); color: var(--ink); font-weight: 750; }
+  .bseg button.on img { opacity: 1; }
+  .bplayers[data-side="away"] .pt.home, .bplayers[data-side="home"] .pt.away { display: none; }
+  .pt { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pt td:first-child, .pt th:first-child { position: sticky; left: 0; background: var(--card); padding-right: 8px; }
+  .pt tr.tot td { color: var(--muted); border-bottom: 0; }
+  .pt .none { color: var(--muted); font-size: 12.5px; padding: 5px 0; }
+  .lcols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 14px; }
+  .leader { display: flex; align-items: center; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .leader .ln { font-size: 14px; line-height: 1.25; }
+  .leader .ls { font-size: 12.5px !important; line-height: 1.3; }
+  .leader .face { width: 44px; height: 44px; flex: none; border-radius: 50%; object-fit: cover; object-position: top; border: 2px solid; background: var(--bg); }
+  .leader .lk { font-size: 11.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .leader .ln { font-weight: 700; }
+  .leader .ls { font-size: 13px; font-variant-numeric: tabular-nums; }
+  @container (min-width: 600px) {
+    .bseg { display: none; }
+    .bpair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; }
+    .bplayers[data-side] .pt.away, .bplayers[data-side] .pt.home { display: block; }
+  }
+
   /* "About the model" on the games list */
   .about { font-size: 14px; line-height: 1.5; }
   .about h3 { font-size: 15px; margin: 16px 0 6px; }
@@ -237,12 +288,12 @@
 <main class="wrap" id="app"><p class="empty">Loading…</p></main>
 
 <script type="module">
-import { loadGames, loadGame } from "./js/espn.js?v=69622991";
-import { addFourthDowns } from "./js/fourth.js?v=69622991";
-import { addLeverage } from "./js/leverage.js?v=69622991";
-import { addConversions } from "./js/twopoint.js?v=69622991";
-import { addWatch } from "./js/watch.js?v=69622991";
-import { seasonReport } from "./js/coaches.js?v=69622991";
+import { loadGames, loadGame } from "./js/espn.js?v=90781bbb";
+import { addFourthDowns } from "./js/fourth.js?v=90781bbb";
+import { addLeverage } from "./js/leverage.js?v=90781bbb";
+import { addConversions } from "./js/twopoint.js?v=90781bbb";
+import { addWatch } from "./js/watch.js?v=90781bbb";
+import { seasonReport } from "./js/coaches.js?v=90781bbb";
 
 const $app = document.getElementById("app");
 const $status = document.getElementById("status");
@@ -527,7 +578,8 @@ function gameCard(g) {
 
 // ---------- single game ----------
 let showEspn = true, showAll = false, keyOnly = false, lastGame = null, cursor = null;
-const folds = { swings: false, summary: false, about: false, tune: false };  // collapsible panels: closed each time a page is opened
+const folds = { swings: false, summary: false, box: false, about: false, tune: false };  // collapsible panels: closed each time a page is opened
+let boxSide = "away";  // which team's players the box score shows on narrow screens
 let pickedId = null, chartShow = null, boardObserver = null;
 try { showEspn = localStorage.getItem("showEspn") !== "0"; } catch (e) {}
 try { keyOnly = localStorage.getItem("keyOnly") === "1"; } catch (e) {}
@@ -617,6 +669,7 @@ function renderGame(g) {
           `${(top.swing >= 0 ? g.home : g.away).abbr} +${Math.round(Math.abs(top.swing) * 100)}`)],
         playList(swings, g, col, tags)));
     }
+    if (g.box) colA.append(boxPanel(g, col));
 
     const all = g.points.filter(p => p.kind !== "now" && p.kind !== "final").reverse();
     const plays = keyOnly ? all.filter(p => tags.get(p).length) : all;
@@ -785,6 +838,141 @@ function summaryPanel(g, col) {
       el("div", { class: "k" }, k), el("div", { class: "v" }, v), d ? el("div", { class: "d" }, d) : null))),
     el("p", { class: "muted small", style: "margin:10px 0 0" },
       "Excitement = how far the win probability line travels, added up play by play (a full swing from 0% to 100% counts 1)."));
+}
+
+// ---------- box score ----------
+// The team rows we show, in order: [label, ESPN stat name, how to write it, the number the bar compares, fewer is better]
+const ofN = v => v.replace(/^(\d+)-(\d+)$/, "$1 of $2");
+const andYds = v => v.replace(/^(\d+)-(\d+)$/, "$1 ($2 yds)");
+const parts = v => (String(v).match(/\d+(\.\d+)?/g) || []).map(Number);
+const rate = v => { const [a, b] = parts(v); return b ? a / b : null; };  // "5-11" or "24/34"; no bar when nothing was tried
+const first = v => parts(v)[0] ?? null, second = v => parts(v)[1] ?? null;
+const clockSecs = v => { const [m, s] = parts(v); return m === undefined ? null : m * 60 + (s || 0); };
+const TEAM_ROWS = [
+  ["First downs", "firstDowns"], ["Total yards", "totalYards"], ["Yards per play", "yardsPerPlay"],
+  ["Passing yards", "netPassingYards"], ["Completions / attempts", "completionAttempts", v => v.replace("/", " / "), rate],
+  ["Rushing yards", "rushingYards"], ["Rushes", "rushingAttempts"],
+  ["3rd downs converted", "thirdDownEff", ofN, rate], ["4th downs converted", "fourthDownEff", ofN, rate],
+  ["Red zone touchdowns", "redZoneAttempts", ofN, rate], ["Turnovers", "turnovers", null, first, true],
+  ["Times sacked", "sacksYardsLost", andYds, first, true], ["Penalties", "totalPenaltiesYards", andYds, second, true],
+  ["Time of possession", "possessionTime", null, clockSecs],
+];
+
+// A bar growing from the middle toward whoever is ahead. Its length is how big the edge is:
+// the gap as a share of the larger value, so 426 vs 412 yards is a sliver and 3 turnovers vs 1 fills most of that side.
+// Returns { lead: "away" | "home" | null (tie), edge: 0–1 }, or null when there's nothing to compare
+function statEdge(a, h, lower) {
+  if (a === null || h === null || !isFinite(a) || !isFinite(h) || a < 0 || h < 0 || a + h === 0) return null;
+  if (a === h) return { lead: null, edge: 0 };
+  return { lead: (a > h) !== !!lower ? "away" : "home", edge: Math.abs(a - h) / Math.max(a, h) };
+}
+// The bar, with a small triangle at the leader's end pointing at that team's column.
+// Both ends keep a fixed slot so the arrows line up down the table. (Drawn in CSS: ◀ ▶ turn into emoji on iPhones.)
+function statBar(e, col) {
+  if (!e) return null;
+  const arrow = side => el("span", { class: "arr " + side, style: e.lead === side ? `border-${side === "away" ? "right" : "left"}-color:${col[side]}` : "visibility:hidden" });
+  return el("div", { class: "brow" }, arrow("away"),
+    el("div", { class: "sbar" }, e.lead ? el("i", { style:
+      `${e.lead === "away" ? "right" : "left"}:50%;width:${e.edge * 50}%;background:${col[e.lead]}` }) : null),
+    arrow("home"));
+}
+// "Kamari Lassiter" → "K. Lassiter"; "C.J. Stroud" stays as is
+const shortName = n => n.replace(/^([^\s.]+)\s+(?=\S)/, (m, first) => `${first[0]}. `);
+
+function boxPanel(g, col) {
+  const box = g.box, sides = ["away", "home"];
+  const tm = side => el("span", { class: "tm", style: `color:${col[side]}` }, el("img", { src: g[side].logo, alt: "" }), g[side].abbr);
+
+  const periods = Math.max(...sides.map(s => box[s].lines.length));
+  const periodName = i => i < 4 ? String(i + 1) : periods > 5 ? `OT${i - 3}` : "OT";
+  const lines = periods ? el("table", { class: "lines" },
+    el("thead", {}, el("tr", {}, el("th", {}, ""), Array.from({ length: periods }, (_, i) => el("th", {}, periodName(i))), el("th", {}, "Total"))),
+    el("tbody", {}, sides.map(s => el("tr", {}, el("td", {}, tm(s)),
+      Array.from({ length: periods }, (_, i) => el("td", {}, box[s].lines[i] ?? "")), el("td", {}, g[s].score))))) : null;
+
+  const rows = TEAM_ROWS.filter(([, key]) => sides.some(s => box[s].stats[key] !== undefined));
+  const fmt = (s, key, f) => { const v = box[s].stats[key]; return v === undefined ? "–" : f ? f(v) : v; };
+  const teamStats = rows.length ? el("table", { class: "tstats" },
+    el("thead", {}, el("tr", {}, el("th", {}, tm("away")), el("th", {}, ""), el("th", {}, tm("home")))),
+    el("tbody", {}, rows.map(([label, key, f, val = parseFloat, lower]) => {
+      const [a, h] = sides.map(s => box[s].stats[key] === undefined ? null : val(box[s].stats[key]));
+      const e = statEdge(a, h, lower);
+      return el("tr", {}, el("td", {}, fmt("away", key, f)),
+        el("td", { class: "k" }, label, statBar(e, col)),
+        el("td", {}, fmt("home", key, f)));
+    }))) : null;
+
+  // Player categories in ESPN's order (passing, rushing, receiving, ..., punting), skipping ones nobody has
+  const names = [];
+  for (const s of sides) for (const c of box[s].players) if (c.rows.length && !names.includes(c.name)) names.push(c.name);
+  const playerTable = (s, name) => {
+    const c = box[s].players.find(x => x.name === name);
+    if (!c || !c.rows.length) return el("div", { class: "pt " + s }, el("div", { class: "none" }, tm(s), " none"));
+    // drop columns ESPN leaves blank for everyone (QBR often is)
+    const cols = c.labels.map((_, i) => i).filter(i => c.rows.some(r => r.stats[i] && r.stats[i] !== "--"));
+    const showTotal = c.rows.length > 1 && c.totals.length === c.labels.length;
+    return el("div", { class: "pt " + s }, el("table", {},
+      el("thead", {}, el("tr", {}, el("th", {}, tm(s)), cols.map(i => el("th", { title: c.descriptions[i] || "" }, c.labels[i])))),
+      el("tbody", {}, c.rows.map(r => el("tr", {}, el("td", { title: r.name }, shortName(r.name)), cols.map(i => el("td", {}, r.stats[i] ?? "")))),
+        showTotal ? el("tr", { class: "tot" }, el("td", {}, "Team"), cols.map(i => el("td", {}, c.totals[i] ?? ""))) : null)));
+  };
+  const title = name => sides.map(s => box[s].players.find(x => x.name === name)?.title).find(Boolean) || name;
+
+  // Leaders, with headshots: offense in one column, defense and kicking in the other.
+  // Each is [ESPN category, label, how to rank players (null = leave the card out), the stat line].
+  const leaderCard = (s, [name, label, rank, line]) => {
+    const c = box[s].players.find(x => x.name === name);
+    if (!c || !c.rows.length) return null;
+    const stat = r => l => r.stats[c.labels.indexOf(l)] ?? "0";
+    const best = c.rows.reduce((a, b) => rank(stat(b)) > rank(stat(a)) ? b : a);
+    if (rank(stat(best)) === null) return null;
+    return el("div", { class: "leader" },
+      el("img", { class: "face", src: best.photo || g[s].logo, alt: "", loading: "lazy", style: `border-color:${col[s]}`,
+        onerror: e => { if (e.target.src !== g[s].logo) e.target.src = g[s].logo; } }),
+      el("div", {}, el("div", { class: "lk" }, label), el("div", { class: "ln" }, best.name),
+        el("div", { class: "ls" }, line(stat(best)))));
+  };
+  const num = v => parseFloat(v) || 0;
+  const count = (n, one, many = one + "s") => `${n} ${num(n) === 1 ? one : many}`;
+  const scored = (v, unit) => num(v) ? `, ${v} ${unit}` : "";
+  const OFFENSE = [
+    ["passing", "Passing", v => num(v("YDS")), v => `${v("C/ATT")}, ${v("YDS")} yds${scored(v("TD"), "TD")}${scored(v("INT"), "INT")}`],
+    ["rushing", "Rushing", v => num(v("YDS")), v => `${count(v("CAR"), "carry", "carries")}, ${v("YDS")} yds${scored(v("TD"), "TD")}`],
+    ["receiving", "Receiving", v => num(v("YDS")), v => `${count(v("REC"), "catch", "catches")}, ${v("YDS")} yds${scored(v("TD"), "TD")}`],
+  ];
+  const DEFENSE = [
+    ["defensive", "Tackles", v => num(v("TOT")) + num(v("SACKS")) / 10,
+      v => `${count(v("TOT"), "tackle")}${num(v("SACKS")) ? `, ${count(v("SACKS"), "sack")}` : ""}`],
+    // one big-play card: whoever picked off the most passes, or else had the most sacks
+    [["interceptions", "Interceptions", v => num(v("INT")) || null,
+      v => `${count(v("INT"), "interception")}${scored(v("YDS"), "return yds")}${scored(v("TD"), "TD")}`],
+     ["defensive", "Sacks", v => num(v("SACKS")) || null, v => `${count(v("SACKS"), "sack")}, ${count(v("TOT"), "tackle")}`]],
+    ["kicking", "Kicking", v => num(v("PTS")), v => [parts(v("FG"))[1] ? `${v("FG")} FG${num(v("LONG")) ? ` (long ${v("LONG")})` : ""}` : "",
+      parts(v("XP"))[1] ? `${v("XP")} extra points` : ""].filter(Boolean).join(", ") || "No kicks"],
+  ];
+  const cards = (s, specs) => specs.map(x => Array.isArray(x[0]) ? x.map(y => leaderCard(s, y)).find(Boolean) : leaderCard(s, x));
+  const leaders = el("div", { class: "bcat" }, el("h3", {}, "Leaders"),
+    el("div", { class: "bpair" }, sides.map(s => el("div", { class: "pt leaders " + s },
+      el("div", { class: "lcols" }, el("div", {}, cards(s, OFFENSE)), el("div", {}, cards(s, DEFENSE)))))));
+
+  // Narrow screens show one team at a time (the buttons pick it); wide ones show both side by side
+  const wrap = el("div", { class: "bplayers", "data-side": boxSide });
+  const seg = el("div", { class: "seg bseg", role: "group", "aria-label": "Which team" }, sides.map(s =>
+    el("button", { "data-side": s, onclick: () => { boxSide = s; wrap.dataset.side = s; paint(); } },
+      el("img", { src: g[s].logo, alt: "" }), g[s].abbr)));
+  // the picked team is underlined in its color (a solid fill would hide logos drawn in that same color)
+  const paint = () => seg.querySelectorAll("button").forEach(b => {
+    const on = b.dataset.side === boxSide;
+    b.className = on ? "on" : "";
+    b.style.cssText = on ? `box-shadow:inset 0 -3px 0 ${col[b.dataset.side]}` : "";
+  });
+  paint();
+  wrap.append(seg, leaders, ...names.map(n => el("div", { class: "bcat" }, el("h3", {}, title(n)),
+    el("div", { class: "bpair" }, sides.map(s => playerTable(s, n))))));
+
+  const yds = sides.map(s => box[s].stats.totalYards);
+  const peek = yds.every(v => v !== undefined) ? `Yards: ${g.away.abbr} ${yds[0]}–${yds[1]} ${g.home.abbr}` : "";
+  return el("div", { class: "box" }, fold("box", "Box score", peek, lines, teamStats, names.length ? wrap : null));
 }
 
 // ---------- 4th downs ----------
@@ -1039,7 +1227,7 @@ function renderCoaches(r, done, total, failed = 0) {
 
 // ---------- routing ----------
 function route() {
-  clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = folds.about = folds.tune = false; pickedId = null; chartShow = null; window.scrollTo(0, 0);
+  clearTimeout(timer); showAll = false; lastGame = null; folds.swings = folds.summary = folds.box = folds.about = folds.tune = false; boxSide = "away"; pickedId = null; chartShow = null; window.scrollTo(0, 0);
   hideMini(); $app.className = "wrap"; document.body.classList.remove("gameview");
   const m = location.hash.match(/^#\/game\/(\d+)/);
   if (m) { $app.replaceChildren(el("p", { class: "empty" }, "Loading game…")); showGame(m[1]); }
