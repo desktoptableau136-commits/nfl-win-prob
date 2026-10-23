@@ -1,15 +1,6 @@
 {
- "updated": "2026-10-20T17:44Z",
+ "updated": "2026-10-23T17:40Z",
  "games": [
-  {
-   "date": "2026-10-22",
-   "away": "NE",
-   "home": "CHI",
-   "away_ch": 193,
-   "home_ch": 192,
-   "national": 88,
-   "spanish": null
-  },
   {
    "date": "2026-10-25",
    "away": "PIT",
@@ -57,11 +48,11 @@
   },
   {
    "date": "2026-10-25",
-   "away": "CIN",
-   "home": "BAL",
-   "away_ch": 264,
-   "home_ch": 195,
-   "national": 99,
+   "away": "SF",
+   "home": "ATL",
+   "away_ch": 261,
+   "home_ch": 192,
+   "national": 180,
    "spanish": null
   },
   {
@@ -75,11 +66,11 @@
   },
   {
    "date": "2026-10-25",
-   "away": "SF",
-   "home": "ATL",
-   "away_ch": 261,
-   "home_ch": 192,
-   "national": 183,
+   "away": "CIN",
+   "home": "BAL",
+   "away_ch": 264,
+   "home_ch": 195,
+   "national": 97,
    "spanish": null
   },
   {
