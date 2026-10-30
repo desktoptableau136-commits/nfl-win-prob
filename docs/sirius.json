@@ -1,15 +1,6 @@
 {
- "updated": "2026-10-27T18:31Z",
+ "updated": "2026-10-30T18:23Z",
  "games": [
-  {
-   "date": "2026-10-29",
-   "away": "CAR",
-   "home": "GB",
-   "away_ch": 193,
-   "home_ch": 192,
-   "national": 88,
-   "spanish": null
-  },
   {
    "date": "2026-11-01",
    "away": "ATL",
@@ -34,7 +25,7 @@
    "home": "BUF",
    "away_ch": 264,
    "home_ch": 195,
-   "national": 178,
+   "national": 97,
    "spanish": null
   },
   {
@@ -52,7 +43,7 @@
    "home": "DAL",
    "away_ch": 262,
    "home_ch": 193,
-   "national": 184,
+   "national": null,
    "spanish": null
   },
   {
@@ -61,7 +52,7 @@
    "home": "DET",
    "away_ch": 263,
    "home_ch": 194,
-   "national": null,
+   "national": 180,
    "spanish": null
   },
   {
@@ -97,7 +88,7 @@
    "home": "MIA",
    "away_ch": 262,
    "home_ch": 193,
-   "national": 178,
+   "national": 184,
    "spanish": null
   },
   {
@@ -106,7 +97,7 @@
    "home": "DEN",
    "away_ch": 261,
    "home_ch": 192,
-   "national": 180,
+   "national": 183,
    "spanish": null
   },
   {
