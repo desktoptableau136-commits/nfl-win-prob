@@ -1,136 +1,235 @@
 {
- "updated": "2026-11-03T19:56Z",
+ "updated": "2026-11-14T15:32Z",
  "games": [
   {
-   "date": "2026-11-05",
-   "away": "JAX",
-   "home": "BAL",
-   "away_ch": 193,
-   "home_ch": 192,
-   "national": 88,
-   "spanish": null
-  },
-  {
-   "date": "2026-11-08",
-   "away": "CIN",
-   "home": "ATL",
+   "date": "2026-11-15",
+   "away": "NE",
+   "home": "DET",
    "away_ch": 263,
    "home_ch": 194,
    "national": 88,
    "spanish": null
   },
   {
-   "date": "2026-11-08",
-   "away": "NYJ",
-   "home": "KC",
-   "away_ch": 264,
+   "date": "2026-11-15",
+   "away": "MIA",
+   "home": "IND",
+   "away_ch": 265,
    "home_ch": 196,
    "national": null,
    "spanish": null
   },
   {
-   "date": "2026-11-08",
-   "away": "NYG",
-   "home": "PHI",
-   "away_ch": 267,
-   "home_ch": 199,
-   "national": 180,
-   "spanish": null
-  },
-  {
-   "date": "2026-11-08",
-   "away": "LAR",
-   "home": "WSH",
-   "away_ch": 268,
-   "home_ch": 195,
-   "national": null,
-   "spanish": null
-  },
-  {
-   "date": "2026-11-08",
-   "away": "CLE",
-   "home": "NO",
-   "away_ch": 266,
-   "home_ch": 198,
-   "national": 97,
-   "spanish": null
-  },
-  {
-   "date": "2026-11-08",
-   "away": "DEN",
-   "home": "CAR",
+   "date": "2026-11-15",
+   "away": "KC",
+   "home": "ATL",
    "away_ch": 261,
    "home_ch": 192,
    "national": null,
    "spanish": null
   },
   {
-   "date": "2026-11-08",
-   "away": "DET",
-   "home": "MIA",
-   "away_ch": 265,
+   "date": "2026-11-15",
+   "away": "HOU",
+   "home": "CLE",
+   "away_ch": 262,
+   "home_ch": 193,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-15",
+   "away": "BUF",
+   "home": "NYJ",
+   "away_ch": 267,
+   "home_ch": 198,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-15",
+   "away": "CAR",
+   "home": "NO",
+   "away_ch": 266,
    "home_ch": 197,
    "national": null,
    "spanish": null
   },
   {
-   "date": "2026-11-08",
-   "away": "DAL",
-   "home": "IND",
-   "away_ch": 262,
-   "home_ch": 193,
+   "date": "2026-11-15",
+   "away": "JAX",
+   "home": "TEN",
+   "away_ch": 268,
+   "home_ch": 199,
    "national": null,
    "spanish": null
   },
   {
-   "date": "2026-11-08",
-   "away": "HOU",
-   "home": "LAC",
+   "date": "2026-11-15",
+   "away": "MIN",
+   "home": "GB",
+   "away_ch": 264,
+   "home_ch": 195,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-15",
+   "away": "LAR",
+   "home": "ARI",
    "away_ch": 263,
    "home_ch": 194,
-   "national": 180,
+   "national": 97,
    "spanish": null
   },
   {
-   "date": "2026-11-08",
-   "away": "GB",
-   "home": "NE",
-   "away_ch": 261,
-   "home_ch": 192,
-   "national": null,
-   "spanish": null
-  },
-  {
-   "date": "2026-11-08",
-   "away": "ARI",
-   "home": "SEA",
-   "away_ch": 262,
-   "home_ch": 193,
-   "national": null,
-   "spanish": null
-  },
-  {
-   "date": "2026-11-08",
-   "away": "LV",
-   "home": "SF",
+   "date": "2026-11-15",
+   "away": "SEA",
+   "home": "LV",
    "away_ch": 269,
    "home_ch": 200,
    "national": null,
    "spanish": null
   },
   {
-   "date": "2026-11-08",
-   "away": "TB",
-   "home": "CHI",
+   "date": "2026-11-15",
+   "away": "SF",
+   "home": "DAL",
+   "away_ch": 261,
+   "home_ch": 192,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-15",
+   "away": "PIT",
+   "home": "CIN",
    "away_ch": 193,
    "home_ch": 192,
    "national": 88,
    "spanish": 194
   },
   {
-   "date": "2026-11-09",
-   "away": "BUF",
-   "home": "MIN",
+   "date": "2026-11-16",
+   "away": "LAC",
+   "home": "BAL",
+   "away_ch": 193,
+   "home_ch": 192,
+   "national": 88,
+   "spanish": 194
+  },
+  {
+   "date": "2026-11-19",
+   "away": "IND",
+   "home": "HOU",
+   "away_ch": 193,
+   "home_ch": 192,
+   "national": 88,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "NO",
+   "home": "CHI",
+   "away_ch": 265,
+   "home_ch": 195,
+   "national": 97,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "MIA",
+   "home": "BUF",
+   "away_ch": 263,
+   "home_ch": 196,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "BAL",
+   "home": "CAR",
+   "away_ch": 264,
+   "home_ch": 197,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "ARI",
+   "home": "KC",
+   "away_ch": 266,
+   "home_ch": 194,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "TB",
+   "home": "DET",
+   "away_ch": 262,
+   "home_ch": 193,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "TEN",
+   "home": "DAL",
+   "away_ch": 261,
+   "home_ch": 192,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "PIT",
+   "home": "PHI",
+   "away_ch": 267,
+   "home_ch": 198,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "NYJ",
+   "home": "LAC",
+   "away_ch": 268,
+   "home_ch": 199,
+   "national": 97,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "LV",
+   "home": "DEN",
+   "away_ch": 261,
+   "home_ch": 192,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "JAX",
+   "home": "NYG",
+   "away_ch": 262,
+   "home_ch": 193,
+   "national": null,
+   "spanish": null
+  },
+  {
+   "date": "2026-11-22",
+   "away": "MIN",
+   "home": "SF",
+   "away_ch": 193,
+   "home_ch": 192,
+   "national": 88,
+   "spanish": 194
+  },
+  {
+   "date": "2026-11-23",
+   "away": "CIN",
+   "home": "WSH",
    "away_ch": 193,
    "home_ch": 192,
    "national": 88,

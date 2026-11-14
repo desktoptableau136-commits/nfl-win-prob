@@ -7,24 +7,17 @@ and its site can't be read from the browser (no CORS). So this scrapes siriusxm.
 writes a small table the page reads. A GitHub Actions workflow (.github/workflows/sirius.yml) runs
 it daily and commits the file when it changes. Standard library only, so the workflow needs no installs.
 
-Each game on the page carries aria-labels like
-    "Listen to Philadelphia Eagles on 263"                                   (satellite channel, the radio number)
-    "Listen to Philadelphia Eagles @ Jacksonville Jaguars on home channel 814"     (app channel; identifies the game)
-    >National< … >CH 88<                                                       (extra feeds, as visible text)
-under a heading like "Sunday, October 11 · 9:30 AM EDT".
+The page embeds its schedule as JSON (see parse()), which is read instead of the rendered HTML.
 """
 import json
 import re
 import urllib.request
-from datetime import date, datetime, timezone
-from html import unescape
+from datetime import datetime, timezone
 from pathlib import Path
 
 PAGE = "https://www.siriusxm.com/sports/nfl"
 TEAMS = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
 OUT = Path(__file__).resolve().parent.parent / "docs" / "sirius.json"
-MONTHS = {m: i for i, m in enumerate(["January", "February", "March", "April", "May", "June", "July", "August",
-                                      "September", "October", "November", "December"], 1)}
 
 
 def get(url):
@@ -38,48 +31,48 @@ def team_abbrs():
     return {t["team"]["displayName"]: t["team"]["abbreviation"] for t in teams}
 
 
-def game_date(heading, today):
-    """'Sunday, October 11 · 9:30 AM EDT' → the date, picking the year nearest today (the page spans New Year's)."""
-    m = re.search(r"(\w+) (\d+)", heading.split(",", 1)[1])
-    d = date(today.year, MONTHS[m.group(1)], int(m.group(2)))
-    if (d - today).days > 180:
-        d = d.replace(year=d.year - 1)
-    elif (today - d).days > 180:
-        d = d.replace(year=d.year + 1)
-    return d
+def flight_data(page):
+    """The page is a Next.js app; its data arrives as JS strings pushed onto self.__next_f. Join and unescape them."""
+    chunks = re.findall(r'self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)', page)
+    return "".join(json.loads('"' + c + '"') for c in chunks)
 
 
-def parse(page, abbr, today):
-    text = unescape(page.replace("<!-- -->", ""))
-    games, heading = [], None
-    # each date heading is followed by its games, each game a <li aria-label="Home vs Away">
-    for kind, body in re.findall(r'(dateTitle[^>]*>|<li aria-label=")(.*?)(?=dateTitle[^>]*>|<li aria-label="|$)', text, re.S):
-        if kind.startswith("dateTitle"):
-            heading = body.split("<", 1)[0]
+def parse(page, abbr):
+    """Each game is an object {"key":"game-…","start":ISO time,"variant":"matchup","awayTeam":…,"homeTeam":…}, where
+    a team's listenOptions list its own feed ("away"/"home": "channel" is satellite, "internetChannel" the app)
+    plus any "national" and "spanish" feeds. The same game can appear more than once on the page."""
+    data, dec = flight_data(page), json.JSONDecoder()
+    games, seen = [], set()
+    for m in re.finditer(r'\{"key":"game-', data):
+        try:
+            g, _ = dec.raw_decode(data, m.start())
+        except ValueError:
             continue
-        feeds = re.findall(r'Listen to ([^"@]+?) @ ([^"]+?) on (\w+) channel (\d+)', body)
-        if not feeds or heading is None:
+        if g.get("variant") != "matchup" or g["key"] in seen:
             continue
-        away, home = feeds[0][0].strip(), feeds[0][1].strip()
+        seen.add(g["key"])
+        away, home = g["awayTeam"]["name"].strip(), g["homeTeam"]["name"].strip()
         if away not in abbr or home not in abbr:
             print(f"skipping unknown team: {away} @ {home}")
             continue
-        sat = {t.strip(): ch for t, ch in re.findall(r'Listen to ([^"@]+?) on (\d+)"', body)}  # team → satellite channel
-        # national and Spanish feeds: the aria-label may give the app channel, so read the visible "CH n" after the label
-        extra = lambda label: (m := re.search(rf">{label}<.*?>CH (\d+)<", body, re.S)) and int(m.group(1))
+        feeds = {}
+        for side in ("awayTeam", "homeTeam"):
+            for o in g[side].get("listenOptions", []):
+                if str(o.get("channel", "")).isdigit():
+                    feeds.setdefault(o["key"], int(o["channel"]))
         games.append({
-            "date": game_date(heading, today).isoformat(),
+            "date": g["start"][:10],  # local (Eastern) date of kickoff
             "away": abbr[away], "home": abbr[home],
-            "away_ch": int(sat[away]) if away in sat else None,
-            "home_ch": int(sat[home]) if home in sat else None,
-            "national": extra("National"),
-            "spanish": extra("Espa[nñ]ol"),
+            "away_ch": feeds.get("away"),
+            "home_ch": feeds.get("home"),
+            "national": feeds.get("national"),
+            "spanish": feeds.get("spanish"),
         })
     return games
 
 
 def main():
-    games = parse(get(PAGE), team_abbrs(), date.today())
+    games = parse(get(PAGE), team_abbrs())
     if not games:
         raise SystemExit("No games found on the SiriusXM page; its layout may have changed. Leaving sirius.json alone.")
     old = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
